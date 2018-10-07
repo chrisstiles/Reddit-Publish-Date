@@ -1,13 +1,18 @@
-const pageLoadMessage = 'page-loaded';
+function sendLoadMessage(tabId) {
+  chrome.tabs.sendMessage(tabId, 'page-loaded');
+}
 
 chrome.webNavigation.onHistoryStateUpdated.addListener(({ tabId }) => {
-  chrome.tabs.sendMessage(tabId, pageLoadMessage);
+  sendLoadMessage(tabId);
+  console.log('here')
 }, { url: [{ hostEquals: 'www.reddit.com' }] });
 
 chrome.webNavigation.onCompleted.addListener(({ tabId }) => {
-  chrome.tabs.sendMessage(tabId, pageLoadMessage);
+  sendLoadMessage(tabId);
+  console.log('here')
 }, { url: [{ hostEquals: 'www.reddit.com' }] });
 
 chrome.webNavigation.onDOMContentLoaded.addListener(({ tabId }) => {
-  chrome.tabs.sendMessage(tabId, pageLoadMessage);
+  sendLoadMessage(tabId);
+  console.log('here')
 }, { url: [{ hostEquals: 'old.reddit.com' }] });
