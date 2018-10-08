@@ -2,7 +2,17 @@
   "name": "Reddit Published Date",
   "version": "1.0",
   "description": "Displays the date an article was originally published to Reddit links. Don't be misled by outdated and irrelevant news.",
+  "permissions": [
+    "background",
+    "https://crossorigin.me/*"
+  ],
   "manifest_version": 2,
+  "background": {
+    "scripts": [
+      "background.js"
+    ],
+    "persistent": false
+  },
   "content_scripts": [
     {
       "matches": [
@@ -32,7 +42,6 @@
         "https://*.reddit.com/*.json-html",
         "https://*.reddit.com/*.json-html?*"
       ],
-      "run_at": "document_start",
       "js": [
         "main.js"
       ]

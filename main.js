@@ -1,143 +1,205 @@
-(function() {
-  const isOldReddit = document.querySelector('meta[name="jsapi"]') ? false : true;
-  console.log(isOldReddit)
-  // The new Reddit design uses Javascript to navigate
-  // Watch for jsapi events to know when post elements are added to the DOM
-  if (!isOldReddit) {
-    document.addEventListener('reddit', addElement, true);
-    document.addEventListener('reddit.urlChanged', urlChanged, true);
+document.onreadystatechange = function () {
+  if (document.readyState === 'complete') {
+    const isOldReddit = document.querySelector('meta[name="jsapi"]') ? false : true;
+    var isCommentsPage = window.location.pathname.includes('comments');
+    
+    // This will be changed to be the function that updates
+    // the post HTMl with the article date. The function
+    // will differ based on which version of Reddit we're using
+    var updatePost;
 
+    // The new Reddit design uses Javascript to navigate
+    // Watch for jsapi events to know when post elements are added to the DOM
+    if (!isOldReddit) {
+      // Register extension
+      const meta = document.createElement('meta');
+      meta.name = 'Reddit Published Date';
+      meta.content = 'Reddit Published Date';
+      document.head.appendChild(meta);
+      meta.dispatchEvent(new CustomEvent('reddit.ready'));
 
-    function handleElementAdded(e) {
-      console.log(e)
-      if (e.detail.type === 'post') {
-        console.log(e)
-      }
-    }
-  }
+      // Listen for jsapi events
+      document.addEventListener('reddit', handleElementAdded, true);
+      document.addEventListener('reddit.urlChanged', handleUrlChanged, true);
+   
+      function handleElementAdded(e) {
+        if (e.detail.type === 'post') {
+          const { id, sourceUrl, domain, media } = e.detail.data;
 
-  
-  // // document.addEventListener('reddit.ready', redditReady, true);
-  // document.addEventListener('reddit.urlChanged', urlChanged, true);
-  // document.addEventListener('post', post, true);
-  // document.addEventListener('subreddit', subreddit, true);
-
-  const meta = document.createElement('meta');
-  meta.name = 'jsapi.consumer';
-  meta.content = 'Reddit Published Date';
-  document.head.appendChild(meta);
-  meta.dispatchEvent(new CustomEvent('reddit.ready'));
-
-  function urlChanged(e) {
-    console.log('urlChanged()')
-    console.log(e)
-  }
-
-  function post() {
-    console.log('post()')
-    console.log(e.type)
-  }
-
-  function subreddit() {
-    console.log('subreddit()')
-    console.log(e.type)
-  }
-
-  // Check for new links whenever a new page loads
-  chrome.runtime.onMessage.addListener(msg => {
-    if (msg === 'page-loaded') {
-      handlePageLoad();
-    }
-  });
-  
-  function handlePageLoad() {
-    const page = getPageType();
-
-    if (page) {
-      const links = getArticleLinks(page);
-
-      if (links) {
-        links.forEach(link => {
-          const url = link.getAttribute('data-url');
-          getArticleDate(url);
-        });
-      }
-    }
-  }
-
-  // Get whether the user is on a listing or comments page
-  function getPageType() {
-    const path = window.location.pathname;
-    var page = null;
-
-    // Comments page
-    if (path.includes('comments')) {
-      page = 'comments';
-    } else {
-      // Listing page
-      if (isOldReddit) {
-        if (document.body.classList.contains('listing-page')) {
-          page = 'listing';
+          // Do not add published date for media links or self posts
+          if (!media && domain && sourceUrl) {
+            updatePost(id, sourceUrl);
+          }
+        } else if (isCommentsPage && e.detail.type === 'postAuthor') {
+          // The 'post' event type doesn't run on comment
+          // pages that aren't viewed in the modal window.
+          // Instead we use the postAuthor type to know when the post has been added
+          console.log('postAuthor')
+          console.log(e)
         }
-      } else {
-      //   var isListingPage = false;
-      //   if (path.includes('/r/')) {
-
-      //   }
-
-      //   const listingPages = ['hot', 'new', 'rising', 'controversial', 'top', 'gilded'];
-      //   const pathParts = path.split('/');
-      //   const lastSegment = pathParts.pop() || pathParts.pop();
-
-      //   if (!lastSegment || listingPages.includes(lastSegment)) {
-      //     page = 'listing';
-      //   }
-      } 
-
-      page = 'listing';
-    }
-
-    return page;
-  }
-
-  // Parse Reddit links, removing links to media content
-  function getArticleLinks(page) {
-    var links = [];
-
-    if (page === 'listing') {
-      links = document.querySelectorAll('#siteTable div[data-url]');
-    }
-
-    return links;
-  }
-
-  const headers = new Headers();
-  headers.append('Content-Type', 'text/html');
-  var show = true;
-  function getArticleDate(url) {
-    url = 'http://www.whateverorigin.org/get?url=' + encodeURIComponent(url);
-    const request = new Request(url, { headers, method: 'GET' });
-
-    fetch(request)
-    .then(response => {
-      return response.json();
-    })
-    .then(({ contents: html }) => {
-      const parser = new DOMParser();
-      // console.log(html)
-
-      const doc = parser.parseFromString(html, 'text/html');
-
-      if (show) {
-        show = false;
-        console.log(doc)
       }
-      // window.test = doc;
-      // // console.log(html)
-      // const element = doc.querySelector('.wp-logo-link');
 
-      // console.log(element)
+      function handleUrlChanged(e) {
+        isCommentsPage = e.detail.location.pathname.includes('comments');
+      }
+      var shouldFetch = true;
+      updatePost = function(postId, url) {
+        const postElement = document.querySelector(`#${postId}`);
+        // console.log(postElement, `#${postId}`);
+
+        if (postElement) {
+          // Return if we have already updated this element
+          if (postElement.getAttribute('added-publish')) {
+            return;
+          }
+
+          postElement.setAttribute('added-publish', true);
+
+          // insert publish date after date posted on Reddit
+          const timestamp = postElement.querySelector('[data-click-id="timestamp"]');
+
+          if (timestamp) {
+            createDateWrapper(postId, timestamp)
+            // Get the date and insert into DOM
+            if (shouldFetch) {
+              shouldFetch = false;
+
+              // getPublishedDate(url, date => {
+              //   insertPublishDate(date, timestamp);
+              // })
+
+              // getPublishedDate(url, function() {
+              //   insertPublishDate(date, timestamp);
+              // })
+
+              getPublishedDate(postId, url)
+            }
+            
+          }
+        }
+      }
+    } else {
+      // The old Reddit design uses traditional server-side rendering
+      updatePost = function(postId, url) {
+        console.log('Old Reddit')
+      }
+    }
+
+    // Get the date an article was published
+    function getPublishedDate(postId, url) {
+      // console.log(callback)
+      chrome.runtime.sendMessage({ postId, url });
+    }
+
+    // Handle background.js message with article date
+    chrome.runtime.onMessage.addListener(({ postId, date }) => {
+      if (date && postId) {
+        insertPublishDate(postId, date);
+      }
     });
+
+    // Creates the span we will use to hold date if it exists
+    function createDateWrapper(postId, previousElement) {
+      if (!previousElement) {
+        return;
+      }
+
+      const publishElement = document.createElement('span');
+
+      publishElement.classList.add('publish-date');
+      publishElement.setAttribute('id', `DatePublished--${postId}`);
+      previousElement.parentNode.insertBefore(publishElement, previousElement.nextSibling);
+    }
+
+
+    // Inserts the date the article was published
+    function insertPublishDate(postId, date) {
+      if (!postId || !date) {
+        return;
+      }
+
+      const publishElement = document.querySelector(`#DatePublished--${postId}`);
+      
+      if (publishElement) {
+        publishElement.innerHTML = date;
+      }
+    }
+
+   
+    function getArticleHtml(url) {
+      // chrome.runtime.sendMessage({ url }, response => {
+      //   console.log(response);
+      // });
+    }
+
+
+    // function handlePageLoad() {
+    //   const page = getPageType();
+
+    //   if (page) {
+    //     const links = getArticleLinks(page);
+
+    //     if (links) {
+    //       links.forEach(link => {
+    //         const url = link.getAttribute('data-url');
+    //         getArticleDate(url);
+    //       });
+    //     }
+    //   }
+    // }
+
+    // Get whether the user is on a listing or comments page
+    // function getPageType() {
+    //   const path = window.location.pathname;
+    //   var page = null;
+
+    //   // Comments page
+    //   if (path.includes('comments')) {
+    //     page = 'comments';
+    //   } else {
+    //     // Listing page
+    //     if (isOldReddit) {
+    //       if (document.body.classList.contains('listing-page')) {
+    //         page = 'listing';
+    //       }
+    //     } else {
+    //       //   var isListingPage = false;
+    //       //   if (path.includes('/r/')) {
+
+    //       //   }
+
+    //       //   const listingPages = ['hot', 'new', 'rising', 'controversial', 'top', 'gilded'];
+    //       //   const pathParts = path.split('/');
+    //       //   const lastSegment = pathParts.pop() || pathParts.pop();
+
+    //       //   if (!lastSegment || listingPages.includes(lastSegment)) {
+    //       //     page = 'listing';
+    //       //   }
+    //     }
+
+    //     page = 'listing';
+    //   }
+
+    //   return page;
+    // }
+
+    // Parse Reddit links, removing links to media content
+    // function getArticleLinks(page) {
+    //   var links = [];
+
+    //   if (page === 'listing') {
+    //     links = document.querySelectorAll('#siteTable div[data-url]');
+    //   }
+
+    //   return links;
+    // }
+
+   
   }
-})();
+} 
+
+
+// (function() {
+  
+// })();
 
