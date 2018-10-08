@@ -3,15 +3,6 @@
   "version": "1.0",
   "description": "Displays the date an article was originally published to Reddit links. Don't be misled by outdated and irrelevant news.",
   "manifest_version": 2,
-  "permissions": [
-    "tabs",
-    "webNavigation",
-    "background"
-  ],
-  "background": {
-    "scripts": ["background.js"],
-    "persistent": false
-  },
   "content_scripts": [
     {
       "matches": [
