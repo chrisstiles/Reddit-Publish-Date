@@ -1,5 +1,45 @@
 (function() {
-  const isOldReddit = location.host === 'old.reddit.com';
+  const isOldReddit = document.querySelector('meta[name="jsapi"]') ? false : true;
+  console.log(isOldReddit)
+  // The new Reddit design uses Javascript to navigate
+  // Watch for jsapi events to know when post elements are added to the DOM
+  if (!isOldReddit) {
+    document.addEventListener('reddit', addElement, true);
+  }
+
+  
+  // // document.addEventListener('reddit.ready', redditReady, true);
+  // document.addEventListener('reddit.urlChanged', urlChanged, true);
+  // document.addEventListener('post', post, true);
+  // document.addEventListener('subreddit', subreddit, true);
+
+  const meta = document.createElement('meta');
+  meta.name = 'jsapi.consumer';
+  meta.content = 'Reddit Article Date';
+  document.head.appendChild(meta);
+  meta.dispatchEvent(new CustomEvent("reddit.ready"));
+
+  function addElement(e) {
+    console.log(e)
+    if (e.detail.type === 'post') {
+      console.log(e)
+    }
+  }
+
+  function urlChanged(e) {
+    console.log('urlChanged()')
+    console.log(e)
+  }
+
+  function post() {
+    console.log('post()')
+    console.log(e.type)
+  }
+
+  function subreddit() {
+    console.log('subreddit()')
+    console.log(e.type)
+  }
 
   // Check for new links whenever a new page loads
   chrome.runtime.onMessage.addListener(msg => {
