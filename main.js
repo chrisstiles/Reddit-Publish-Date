@@ -5,6 +5,15 @@
   // Watch for jsapi events to know when post elements are added to the DOM
   if (!isOldReddit) {
     document.addEventListener('reddit', addElement, true);
+    document.addEventListener('reddit.urlChanged', urlChanged, true);
+
+
+    function handleElementAdded(e) {
+      console.log(e)
+      if (e.detail.type === 'post') {
+        console.log(e)
+      }
+    }
   }
 
   
@@ -15,16 +24,9 @@
 
   const meta = document.createElement('meta');
   meta.name = 'jsapi.consumer';
-  meta.content = 'Reddit Article Date';
+  meta.content = 'Reddit Published Date';
   document.head.appendChild(meta);
-  meta.dispatchEvent(new CustomEvent("reddit.ready"));
-
-  function addElement(e) {
-    console.log(e)
-    if (e.detail.type === 'post') {
-      console.log(e)
-    }
-  }
+  meta.dispatchEvent(new CustomEvent('reddit.ready'));
 
   function urlChanged(e) {
     console.log('urlChanged()')
