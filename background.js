@@ -77,30 +77,66 @@ function getDateFromHTML(article) {
   var publishDate = null;
   
   // Some websites include linked data with information about the article
+  publishDate = checkLinkedData(article);
+
+  // Next try searching for metadata
+  if (!publishDate) {
+    publishDate = checkMetaData(article);
+  }
+
+  return publishDate;
+}
+
+function checkLinkedData(article) {
   var linkedData = article.querySelector('script[type="application/ld+json"]');
 
   if (linkedData) {
+    const possibleKeys = ['datePublished', 'dateCreated', 'published'];
+
     try {
       linkedData = JSON.parse(linkedData.innerHTML);
-      publishDate = linkedData.datePublished || linkedData.dateCreated;
-      
-      if (publishDate) {
-        return publishDate;
+
+      for (let key of possibleKeys) {
+        if (linkedData[key]) {
+          return linkedData[key];
+        }
       }
+
     } catch {
       // The website has invalid JSON, attempt 
       // to get the date with Regex
-      const dateTest = /(?<=datePublished":\s*")(\S+)(?=\s*",)/;
+      for (let key of possibleKeys) {
+        var dateTest = new RegExp(`/(?<=${key}":\s*")(\S+)(?=\s*",)/`);
+        publishDate = linkedData.innerHTML.match(dateTest);
 
-      publishDate = linkedData.innerHTML.match(dateTest);
-
-      if (publishDate && publishDate.length) {
-        return publishDate[0];
+        if (publishDate && publishDate.length) {
+          return publishDate[0];
+        }
       }
     }
   }
 
-  return publishDate;
+  return null;
+}
+
+function checkMetaData(article) {
+  const possibleProperties = [
+    'article:published_time', 'pubdate', 'publishdate', 'timestamp', 'DC.date.issued',
+    'bt:pubDate', 'sailthru.date', 'article.published', 'published-date', 'article.created',
+    'article_date_original', 'cXenseParse:recs:publishtime', 'DATE_PUBLISHED', 'datePublished'
+  ];
+
+  const metaData = article.querySelectorAll('meta');
+
+  for (let meta of metaData) {
+    let property = meta.getAttribute('name') || meta.getAttribute('property');
+
+    if (property && possibleProperties.includes(property)) {
+      return meta.getAttribute('content');
+    }
+  }
+
+  return null;
 }
 
 function formatDate(date) {
