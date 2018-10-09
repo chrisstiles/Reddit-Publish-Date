@@ -13,7 +13,7 @@ function getArticleDate(postId, url, tabId) {
 
     // Publish date was successfully found, send to client script
     if (date) {
-      chrome.tabs.sendMessage(tabId, { postId, date: date.toLocaleString() });
+      chrome.tabs.sendMessage(tabId, { postId, date: formatDate(date) });
     }
   });
 }
@@ -21,7 +21,7 @@ function getArticleDate(postId, url, tabId) {
 // Get all the HTML from the article page
 const headers = new Headers();
 headers.append('Content-Type', 'text/html');
-headers.append('Origin', 'X-Requested-With');
+headers.append('X-Requested-With', 'XmlHttpRequest');
 
 function getArticleHtml(url) {
   url = 'https://cors-anywhere.herokuapp.com/' + url;
@@ -29,6 +29,7 @@ function getArticleHtml(url) {
 
   return fetch(request)
     .then(response => {
+      // console.log(response.headers.get('Content-Size'));
       return response.text();
     })
     .then(html => {
@@ -50,12 +51,18 @@ function getDateFromHTML(article) {
     try {
       linkedData = JSON.parse(linkedData.innerHTML);
       publishDate = linkedData.datePublished || linkedData.dateCreated;
-      console.log(publishDate)
-      return publishDate;
+      
+      if (publishDate) {
+        return publishDate;
+      }
     } catch {
       console.log('Invalid linkedData JSON')
     }
   }
 
   return publishDate;
+}
+
+function formatDate(date) {
+  return (new Date(date)).strftime('%x');
 }

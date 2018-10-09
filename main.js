@@ -121,7 +121,7 @@ document.onreadystatechange = function () {
       const publishElement = document.querySelector(`#DatePublished--${postId}`);
       
       if (publishElement) {
-        publishElement.innerHTML = date;
+        publishElement.innerHTML = `Published: ${date}`;
       }
     }
 

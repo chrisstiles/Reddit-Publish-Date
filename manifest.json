@@ -4,11 +4,13 @@
   "description": "Displays the date an article was originally published to Reddit links. Don't be misled by outdated and irrelevant news.",
   "permissions": [
     "background",
-    "https://crossorigin.me/*"
+    "storage",
+    "https://cors-anywhere.herokuapp.com/*"
   ],
   "manifest_version": 2,
   "background": {
     "scripts": [
+      "format-date.js",
       "background.js"
     ],
     "persistent": false
