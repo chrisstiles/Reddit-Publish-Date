@@ -6,7 +6,7 @@ function loadCachedDates(tabId) {
       try {
         cachedDates = JSON.parse(dates);
       } catch {
-        console.log('Error parsing JSON');
+        cachedDates = {};
       }
     }
   });
@@ -84,33 +84,41 @@ function getDateFromHTML(article) {
     publishDate = checkMetaData(article);
   }
 
+  // Try checking item props and CSS selectors
+  if (!publishDate) {
+    publishDate = checkSelectors(article);
+  }
+
   return publishDate;
 }
 
 function checkLinkedData(article) {
-  var linkedData = article.querySelector('script[type="application/ld+json"]');
+  var linkedData = article.querySelectorAll('script[type="application/ld+json"]');
 
-  if (linkedData) {
+  if (linkedData && linkedData.length) {
     const possibleKeys = ['datePublished', 'dateCreated', 'published'];
 
-    try {
-      linkedData = JSON.parse(linkedData.innerHTML);
+    // Some sites have more than one script tag with linked data
+    for (let node of linkedData) {
+      try {
+        let data = JSON.parse(node.innerHTML);
 
-      for (let key of possibleKeys) {
-        if (linkedData[key]) {
-          return linkedData[key];
+        for (let key of possibleKeys) {
+          if (data[key]) {
+            return data[key];
+          }
         }
-      }
 
-    } catch {
-      // The website has invalid JSON, attempt 
-      // to get the date with Regex
-      for (let key of possibleKeys) {
-        var dateTest = new RegExp(`/(?<=${key}":\s*")(\S+)(?=\s*",)/`);
-        publishDate = linkedData.innerHTML.match(dateTest);
+      } catch {
+        // The website has invalid JSON, attempt 
+        // to get the date with Regex
+        for (let key of possibleKeys) {
+          var dateTest = new RegExp(`/(?<=${key}":\s*")(\S+)(?=\s*",)/`);
+          publishDate = node.innerHTML.match(dateTest);
 
-        if (publishDate && publishDate.length) {
-          return publishDate[0];
+          if (publishDate && publishDate.length) {
+            return publishDate[0];
+          }
         }
       }
     }
@@ -121,15 +129,16 @@ function checkLinkedData(article) {
 
 function checkMetaData(article) {
   const possibleProperties = [
-    'article:published_time', 'pubdate', 'publishdate', 'timestamp', 'DC.date.issued',
-    'bt:pubDate', 'sailthru.date', 'article.published', 'published-date', 'article.created',
+    'article:published_time', 'article:published', 'pubdate', 'publishdate', 
+    'timestamp', 'DC.date.issued', 'bt:pubDate', 'sailthru.date', 
+    'article.published', 'published-date', 'article.created', 'date_published', 'cxenseparse:recs:publishtime',
     'article_date_original', 'cXenseParse:recs:publishtime', 'DATE_PUBLISHED', 'datePublished'
   ];
 
   const metaData = article.querySelectorAll('meta');
 
   for (let meta of metaData) {
-    let property = meta.getAttribute('name') || meta.getAttribute('property');
+    let property = meta.getAttribute('name') || meta.getAttribute('property') || meta.getAttribute('itemprop');
 
     if (property && possibleProperties.includes(property)) {
       return meta.getAttribute('content');
@@ -137,6 +146,43 @@ function checkMetaData(article) {
   }
 
   return null;
+}
+
+function checkSelectors(article) {
+  const possibleSelectors = [
+    'datePublished', 'pubdate', 'timestamp', 'post__date', 'Article__Date'
+  ];
+
+  for (let selector of possibleSelectors) {
+    let selectorString = `[itemprop="${selector}"], .${selector}, #${selector}`;
+    let elements = article.querySelectorAll(selectorString);
+    
+    // Loop through elements to see if one is a date
+    if (elements && elements.length) {
+      for (let element of elements) {
+        let datetime = element.getAttribute('datetime');
+        if (datetime) {
+          return datetime;
+        }
+
+        if (isValidDate(element.innerHTML)) {
+          return element.innerHTML;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function isValidDate(date) {
+  date = Date.parse(date);
+
+  if (!isNaN(date)) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 function formatDate(date) {
