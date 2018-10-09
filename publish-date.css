@@ -1,0 +1,18 @@
+.publish-date {
+  margin-left: 2px;
+  display: inline-block;
+  box-shadow: 0px 0px 0px 1px #e8e8e8;
+  padding: 0 4px;
+  border-radius: 2px;
+}
+
+.publish-date.old {
+  box-shadow: 0px 0px 0px 1px #f9a8a8;
+  background-color: #ffcfcf;
+  color: #731010;
+  font-weight: 600;
+}
+
+.publish-date:empty {
+  display:none;
+}

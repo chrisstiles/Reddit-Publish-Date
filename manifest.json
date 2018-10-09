@@ -46,7 +46,16 @@
       ],
       "js": [
         "main.js"
+      ],
+      "css": [
+        "publish-date.css"
       ]
     }
+  ],
+  "web_accessible_resources": [
+    "main.js",
+    "format-date.js",
+    "background.js",
+    "publish-date.css"
   ]
 }
