@@ -17,10 +17,64 @@ document.onreadystatechange = function () {
       // the post HTMl with the article date. The function
       // will differ based on which version of Reddit we're using
       var updatePost;
+      
+      if (isOldReddit) {
+        // The old Reddit design uses traditional server-side rendering
+        updatePost = function (postId, url) {
+          const postElement = document.querySelector(`.id-t3_${postId}`);
+          
+          if (postElement) {
+            const timestamp = postElement.querySelector('.live-timestamp');
 
-      // The new Reddit design uses Javascript to navigate
-      // Watch for jsapi events to know when post elements are added to the DOM
-      if (!isOldReddit) {
+            if (timestamp) {
+              createDateWrapper(postId, timestamp);
+              getPublishedDate(postId, url);
+            }
+            
+          }
+        }
+
+        // Get list of links
+        // const wrapper = document.querySelector('#siteTable');
+        
+        // if (wrapper) {
+        //   const links = wrapper.querySelectorAll('[data-type="link"]');
+
+        //   for (let link of links) {
+        //     console.log(link)
+        //   }
+        // }
+        // Get page as JSON
+        var url = window.location.href;
+
+        if (url.substring(url.length - 1) === '/') {
+          url = url.slice(0, -1) + '';
+        }
+
+        fetch (`${url}.json`)
+          .then(response => {
+            return response.json();
+          })
+          .then(json => {
+            if (json && json.kind === 'Listing') {
+              const { children: links } = json.data;
+
+              if (links) {
+                for (let link of links) {
+                  const { data } = link;
+                  const { postHint, url, id } = data;
+                  
+                  if (!postHint || postHint === 'link') {
+                    updatePost(id, url);
+                  }
+                }
+              }
+            }
+          });
+        // const url = `${window.location.href}`;
+      } else {
+        // The new Reddit design uses Javascript to navigate
+        // Watch for jsapi events to know when post elements are added to the DOM
         // Register extension
         const meta = document.createElement('meta');
         meta.name = 'Reddit Published Date';
@@ -46,12 +100,16 @@ document.onreadystatechange = function () {
             // Instead we use the postAuthor type to know when the post has been added
             console.log('postAuthor')
             console.log(e)
+          } else if (e.detail.type === 'subreddit') {
+            console.log('subreddit')
+            console.log(e)
           }
         }
 
         function handleUrlChanged(e) {
           isCommentsPage = e.detail.location.pathname.includes('comments');
         }
+
         var shouldFetch = true;
         updatePost = function (postId, url) {
           const postElement = document.querySelector(`#${postId}`);
@@ -69,7 +127,7 @@ document.onreadystatechange = function () {
             const timestamp = postElement.querySelector('[data-click-id="timestamp"]');
 
             if (timestamp) {
-              createDateWrapper(postId, timestamp)
+              createDateWrapper(postId, timestamp);
               // Get the date and insert into DOM
               if (shouldFetch) {
                 // shouldFetch = false;
@@ -82,16 +140,11 @@ document.onreadystatechange = function () {
                 //   insertPublishDate(date, timestamp);
                 // })
 
-                getPublishedDate(postId, url)
+                getPublishedDate(postId, url);
               }
 
             }
           }
-        }
-      } else {
-        // The old Reddit design uses traditional server-side rendering
-        updatePost = function (postId, url) {
-          console.log('Old Reddit')
         }
       }
 

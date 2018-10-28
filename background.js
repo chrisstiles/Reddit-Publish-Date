@@ -58,7 +58,7 @@ headers.append('X-Requested-With', 'XmlHttpRequest');
 
 function getArticleHtml(url) {
   url = 'https://cors-anywhere.herokuapp.com/' + url;
-  const request = new Request(url, { headers, method: 'GET', cache: 'reload' });
+  const request = new Request(url, { headers, method: 'GET' });
 
   return fetch(request)
     .then(response => {
@@ -67,7 +67,8 @@ function getArticleHtml(url) {
     .then(html => {
       const htmlDocument = document.implementation.createHTMLDocument('parser');
       const article = htmlDocument.createElement('div');
-      article.innerHTML = html;
+      // html = html.replace(/src/g, '_src');
+      article.innerHTML = html.replace(/src/g, '_src');;
 
       return article;
     });
@@ -129,10 +130,10 @@ function checkLinkedData(article) {
 
 function checkMetaData(article) {
   const possibleProperties = [
-    'article:published_time', 'article:published', 'pubdate', 'publishdate', 
+    'article:published_time', 'article:published', 'pubdate', 'publishdate',
     'timestamp', 'DC.date.issued', 'bt:pubDate', 'sailthru.date', 
-    'article.published', 'published-date', 'article.created', 'date_published', 'cxenseparse:recs:publishtime',
-    'article_date_original', 'cXenseParse:recs:publishtime', 'DATE_PUBLISHED', 'datePublished'
+    'article.published', 'published-date', 'article.created', 'date_published', 'cxenseparse:recs:publishtime', 'article_date_original', 'cXenseParse:recs:publishtime', 
+    'DATE_PUBLISHED', 'datePublished'
   ];
 
   const metaData = article.querySelectorAll('meta');
