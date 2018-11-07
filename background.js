@@ -1,3 +1,10 @@
+// chrome.storage.local.clear(function () {
+//   var error = chrome.runtime.lastError;
+//   if (error) {
+//     console.error(error);
+//   }
+// });
+
 var cachedDates = {};
 function loadCachedDates(tabId) {
   chrome.storage.local.get('publishDates', ({ publishDates: dates }) => {
@@ -38,6 +45,11 @@ function getArticleDate(postId, url, tabId) {
     // Publish date was successfully found, send to client script
     if (date) {
       const formattedDate = formatDate(date);
+
+      if (!formattedDate) {
+        console.log('Invalid Datestring: ', date);
+      }
+
       sendDateMessage(tabId, postId, formattedDate);
 
       // Save cached date 
@@ -53,24 +65,55 @@ function sendDateMessage(tabId, postId, date) {
 
 // Get all the HTML from the article page
 const headers = new Headers();
-headers.append('Content-Type', 'text/html');
-headers.append('X-Requested-With', 'XmlHttpRequest');
+headers.append('Content-Type', 'text/plain');
+headers.append('X-XSS-Protection', '1; mode=block');
+// TODO Remove no cache headers
+// headers.append('pragma', 'no-cache');
+// headers.append('cache-control', 'no-cache');
+// headers.append('X-Requested-With', 'XmlHttpRequest');
 
 function getArticleHtml(url) {
-  url = 'https://cors-anywhere.herokuapp.com/' + url;
-  const request = new Request(url, { headers, method: 'GET' });
-
+  // url = 'https://cors-anywhere.herokuapp.com/' + url;
+  const request = new Request(url, { headers, method: 'GET', cache: 'no-store' });
+  console.log(url)
   return fetch(request)
     .then(response => {
+      // console.log(response.headers)
+      // const json = response.json();
+      // console.log(json)
+      // console.log(response)
       return response.text();
     })
     .then(html => {
+      if (url.includes('cbsnews')) {
+        console.log('cbs');
+        window.test = html;
+      }
+
+      // console.log(JSON.parse(html))
+      html = html.replace(/script|link|img|src|href|rel/g, 'disabled_$&');
+      // // html = html
+      // if (html.includes('mux.js')) {
+      //   window.test = html;
+      // }
       const htmlDocument = document.implementation.createHTMLDocument('parser');
       const article = htmlDocument.createElement('div');
-      // html = html.replace(/src/g, '_src');
-      article.innerHTML = html.replace(/src/g, '_src');;
+      // html = html.replace(/script/g, 'meta');
+      // console.log(html)
+      article.innerHTML = html;
+      // article.innerHTML = html.replace(/src/g, '_src');
 
       return article;
+
+      
+
+      // if ()
+
+      // const parser = new DOMParser();
+      // const doc = parser.parseFromString(html, 'text/html');
+      // return doc;
+    }).catch(error => {
+      console.log(error)
     });
 }
 
@@ -93,11 +136,18 @@ function getDateFromHTML(article) {
   return publishDate;
 }
 
+window.getDate = function(url) {
+  getArticleHtml(url).then(article => {
+    const date = getDateFromHTML(article);
+    console.log(date, formatDate(date));
+  });
+}
+
 function checkLinkedData(article) {
-  var linkedData = article.querySelectorAll('script[type="application/ld+json"]');
+  var linkedData = article.querySelectorAll('disabled_script[type="application/ld+json"]');
 
   if (linkedData && linkedData.length) {
-    const possibleKeys = ['datePublished', 'dateCreated', 'published'];
+    const possibleKeys = ['datePublished', 'dateCreated', 'published', 'uploadDate'];
 
     // Some sites have more than one script tag with linked data
     for (let node of linkedData) {
@@ -131,7 +181,7 @@ function checkLinkedData(article) {
 function checkMetaData(article) {
   const possibleProperties = [
     'article:published_time', 'article:published', 'pubdate', 'publishdate',
-    'timestamp', 'DC.date.issued', 'bt:pubDate', 'sailthru.date', 
+    'timestamp', 'date', 'DC.date.issued', 'bt:pubDate', 'sailthru.date', 
     'article.published', 'published-date', 'article.created', 'date_published', 'cxenseparse:recs:publishtime', 'article_date_original', 'cXenseParse:recs:publishtime', 
     'DATE_PUBLISHED', 'datePublished'
   ];
@@ -186,8 +236,19 @@ function isValidDate(date) {
   }
 }
 
-function formatDate(date) {
-  return (new Date(date)).strftime('%x');
+function formatDate(dateString) {
+  var date = moment(dateString);
+  const format = 'M/D/YY';
+
+  if (date._isValid) {
+    return moment.format(format);
+  } else {
+    // Try to account for strangly formatted dates
+    // const timezones = [EST, EDT, CST, ]
+    //dateString
+
+    return null;
+  }
 }
 
 // Cache list of saved posts. We use a timer

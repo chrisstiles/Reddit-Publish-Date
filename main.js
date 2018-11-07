@@ -21,8 +21,9 @@ document.onreadystatechange = function () {
       if (isOldReddit) {
         // The old Reddit design uses traditional server-side rendering
         updatePost = function (postId, url) {
+          postId = postId.replace('t3_', '');
           const postElement = document.querySelector(`.id-t3_${postId}`);
-          
+
           if (postElement) {
             const timestamp = postElement.querySelector('.live-timestamp');
 
@@ -34,43 +35,62 @@ document.onreadystatechange = function () {
           }
         }
 
-        // Get list of links
-        // const wrapper = document.querySelector('#siteTable');
-        
-        // if (wrapper) {
-        //   const links = wrapper.querySelectorAll('[data-type="link"]');
+        function updateSiteTable() {
+          var wrapper = document.querySelectorAll('#siteTable');
 
-        //   for (let link of links) {
-        //     console.log(link)
-        //   }
-        // }
-        // Get page as JSON
-        var url = window.location.href;
+          if (wrapper) {
+            wrapper = wrapper[wrapper.length - 1];
 
-        if (url.substring(url.length - 1) === '/') {
-          url = url.slice(0, -1) + '';
-        }
+            const links = wrapper.querySelectorAll('[data-type="link"]');
 
-        fetch (`${url}.json`)
-          .then(response => {
-            return response.json();
-          })
-          .then(json => {
-            if (json && json.kind === 'Listing') {
-              const { children: links } = json.data;
+            for (let link of links) {
+              if (!link.classList.contains('self')) {
+                const id = link.getAttribute('data-fullname');
+                const url = link.getAttribute('data-url');
 
-              if (links) {
-                for (let link of links) {
-                  const { data } = link;
-                  const { postHint, url, id } = data;
-                  
-                  if (!postHint || postHint === 'link') {
-                    updatePost(id, url);
-                  }
+                if (id && url && url.includes('http')) {
+                  updatePost(id, url);
                 }
               }
             }
-          });
+          }
+        }
+
+        updateSiteTable();
+
+        // Re-check dates when reddit enhancement suite loads new posts
+        window.addEventListener('neverEndingLoad', updateSiteTable, false);
+        
+        // Get page as JSON
+        function updateFromListingJSON() {
+          var url = window.location.href;
+
+          if (url.substring(url.length - 1) === '/') {
+            url = url.slice(0, -1) + '';
+          }
+
+          fetch(`${url}.json`, { cache: 'no-store' })
+            .then(response => {
+              return response.json();
+            })
+            .then(json => {
+              if (json && json.kind === 'Listing') {
+                const { children: links } = json.data;
+
+                if (links) {
+                  for (let link of links) {
+                    const { data } = link;
+                    const { postHint, url, id } = data;
+
+                    if (!postHint || postHint === 'link') {
+                      updatePost(id, url);
+                    }
+                  }
+                }
+              }
+            });
+        }
+        
         // const url = `${window.location.href}`;
       } else {
         // The new Reddit design uses Javascript to navigate
@@ -158,6 +178,8 @@ document.onreadystatechange = function () {
       chrome.runtime.onMessage.addListener(({ postId, date }) => {
         if (date && postId) {
           insertPublishDate(postId, date);
+        } else {
+          console.log(date)
         }
       });
 

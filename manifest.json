@@ -5,12 +5,13 @@
   "permissions": [
     "background",
     "storage",
-    "https://cors-anywhere.herokuapp.com/*"
+    "https://*/",
+    "http://*/"
   ],
   "manifest_version": 2,
   "background": {
     "scripts": [
-      "format-date.js",
+      "moment.js",
       "background.js"
     ],
     "persistent": false
