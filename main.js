@@ -22,7 +22,7 @@ document.onreadystatechange = function () {
         // The old Reddit design uses traditional server-side rendering
         updatePost = function (postId, url) {
           postId = postId.replace('t3_', '');
-          const postElement = document.querySelector(`.id-t3_${postId}`);
+          const postElement = document.querySelector(`.id-t3_${postId}[data-context="listing"]`);
 
           if (postElement) {
             const timestamp = postElement.querySelector('.live-timestamp');
@@ -35,18 +35,17 @@ document.onreadystatechange = function () {
           }
         }
 
-        function updateSiteTable() {
-          var wrapper = document.querySelectorAll('#siteTable');
+        function updateListings() {
+          // var wrapper = document.querySelectorAll('#siteTable');
+          const links = document.querySelectorAll(`.link[data-context="listing"]`);
 
-          if (wrapper) {
-            wrapper = wrapper[wrapper.length - 1];
-
-            const links = wrapper.querySelectorAll('[data-type="link"]');
-
+          if (links) {
             for (let link of links) {
-              if (!link.classList.contains('self')) {
+              if (!link.classList.contains('self') && !link.classList.contains('checked-date')) {
                 const id = link.getAttribute('data-fullname');
                 const url = link.getAttribute('data-url');
+
+                link.classList.add('checked-date');
 
                 if (id && url && url.includes('http')) {
                   updatePost(id, url);
@@ -56,10 +55,10 @@ document.onreadystatechange = function () {
           }
         }
 
-        updateSiteTable();
+        updateListings();
 
         // Re-check dates when reddit enhancement suite loads new posts
-        window.addEventListener('neverEndingLoad', updateSiteTable, false);
+        window.addEventListener('neverEndingLoad', updateListings, false);
         
         // Get page as JSON
         function updateFromListingJSON() {
@@ -137,11 +136,11 @@ document.onreadystatechange = function () {
 
           if (postElement) {
             // Return if we have already updated this element
-            if (postElement.getAttribute('added-publish')) {
+            if (postElement.classList.contains('checked-date')) {
               return;
             }
 
-            postElement.setAttribute('added-publish', true);
+            postElement.classList.add('checked-date');
 
             // insert publish date after date posted on Reddit
             const timestamp = postElement.querySelector('[data-click-id="timestamp"]');

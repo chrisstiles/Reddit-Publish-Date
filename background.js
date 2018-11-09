@@ -19,17 +19,15 @@ function loadCachedDates(tabId) {
   });
 }
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender) => {
   const { postId, url, loadCache } = request;
+
   if (loadCache) {
     loadCachedDates(sender.tab.id);
     return;
   } 
 
   getArticleDate(postId, url, sender.tab.id);
-
-  // Close message channel
-  sendResponse();
 });
 
 function getArticleDate(postId, url, tabId) {
@@ -42,19 +40,11 @@ function getArticleDate(postId, url, tabId) {
   getArticleHtml(url).then(article => {
     const date = getDateFromHTML(article);
 
-    // Publish date was successfully found, send to client script
-    if (date) {
-      const formattedDate = formatDate(date);
+    if (!date) return;
 
-      if (!formattedDate) {
-        console.log('Invalid Datestring: ', date);
-      }
-
-      sendDateMessage(tabId, postId, formattedDate);
-
-      // Save cached date 
-      cachePublishDates(postId, formattedDate);
-    }
+    // Publish date was successfully found, send to client script and cache
+    sendDateMessage(tabId, postId, date);
+    cachePublishDates(postId, date);
   });
 }
 
@@ -65,7 +55,7 @@ function sendDateMessage(tabId, postId, date) {
 
 // Get all the HTML from the article page
 const headers = new Headers();
-headers.append('Content-Type', 'text/plain');
+headers.append('Content-Type', 'text/html');
 headers.append('X-XSS-Protection', '1; mode=block');
 // TODO Remove no cache headers
 // headers.append('pragma', 'no-cache');
@@ -74,8 +64,8 @@ headers.append('X-XSS-Protection', '1; mode=block');
 
 function getArticleHtml(url) {
   // url = 'https://cors-anywhere.herokuapp.com/' + url;
-  const request = new Request(url, { headers, method: 'GET', cache: 'no-store' });
-  console.log(url)
+  const request = new Request(url, { headers, method: 'GET' });
+  // console.log(url)
   return fetch(request)
     .then(response => {
       // console.log(response.headers)
@@ -85,15 +75,13 @@ function getArticleHtml(url) {
       return response.text();
     })
     .then(html => {
-      if (url.includes('cbsnews')) {
-        console.log('cbs');
-        window.test = html;
-      }
+      // console.log(html);
 
       // console.log(JSON.parse(html))
-      html = html.replace(/script|link|img|src|href|rel/g, 'disabled_$&');
+      // html = html.replace(/script|link|img|src|href|rel/g, 'disabled_$&');
+      // console.log(html)
       // // html = html
-      // if (html.includes('mux.js')) {
+      // if (html.includes('mux.js')) 
       //   window.test = html;
       // }
       const htmlDocument = document.implementation.createHTMLDocument('parser');
@@ -124,14 +112,10 @@ function getDateFromHTML(article) {
   publishDate = checkLinkedData(article);
 
   // Next try searching for metadata
-  if (!publishDate) {
-    publishDate = checkMetaData(article);
-  }
+  if (!publishDate) publishDate = checkMetaData(article);
 
   // Try checking item props and CSS selectors
-  if (!publishDate) {
-    publishDate = checkSelectors(article);
-  }
+  if (!publishDate) publishDate = checkSelectors(article);
 
   return publishDate;
 }
@@ -144,10 +128,11 @@ window.getDate = function(url) {
 }
 
 function checkLinkedData(article) {
-  var linkedData = article.querySelectorAll('disabled_script[type="application/ld+json"]');
-
+  console.log('checkLinkedData()')
+  var linkedData = article.querySelectorAll('script[type="application/ld+json"]');
+  // console.log(article)
   if (linkedData && linkedData.length) {
-    const possibleKeys = ['datePublished', 'dateCreated', 'published', 'uploadDate'];
+    const possibleKeys = ['datePublished', 'dateCreated', 'published', 'uploadDate', 'date'];
 
     // Some sites have more than one script tag with linked data
     for (let node of linkedData) {
@@ -156,7 +141,9 @@ function checkLinkedData(article) {
 
         for (let key of possibleKeys) {
           if (data[key]) {
-            return data[key];
+            let date = formatDate(data[key]);
+            // console.log(data[key], date);
+            if (date) return date;
           }
         }
 
@@ -168,7 +155,8 @@ function checkLinkedData(article) {
           publishDate = node.innerHTML.match(dateTest);
 
           if (publishDate && publishDate.length) {
-            return publishDate[0];
+            let date = formatDate(publishDate[0]);
+            if (date) return date;
           }
         }
       }
@@ -179,11 +167,13 @@ function checkLinkedData(article) {
 }
 
 function checkMetaData(article) {
+  console.log('checkMetaData()')
   const possibleProperties = [
-    'article:published_time', 'article:published', 'pubdate', 'publishdate',
+    'datePublished', 'article:published_time', 'article:published', 'pubdate', 'publishdate',
     'timestamp', 'date', 'DC.date.issued', 'bt:pubDate', 'sailthru.date', 
-    'article.published', 'published-date', 'article.created', 'date_published', 'cxenseparse:recs:publishtime', 'article_date_original', 'cXenseParse:recs:publishtime', 
-    'DATE_PUBLISHED', 'datePublished'
+    'article.published', 'published-date', 'article.created', 'date_published', 
+    'cxenseparse:recs:publishtime', 'article_date_original', 'cXenseParse:recs:publishtime', 
+    'DATE_PUBLISHED', 'shareaholic:article_published_time', 'parsely-pub-date'
   ];
 
   const metaData = article.querySelectorAll('meta');
@@ -192,7 +182,8 @@ function checkMetaData(article) {
     let property = meta.getAttribute('name') || meta.getAttribute('property') || meta.getAttribute('itemprop');
 
     if (property && possibleProperties.includes(property)) {
-      return meta.getAttribute('content');
+      let date = formatDate(meta.getAttribute('content'));
+      if (date) return date;
     }
   }
 
@@ -200,8 +191,10 @@ function checkMetaData(article) {
 }
 
 function checkSelectors(article) {
+  console.log('checkSelectors()')
   const possibleSelectors = [
-    'datePublished', 'pubdate', 'timestamp', 'post__date', 'Article__Date'
+    'datePublished', 'pubdate', 'timestamp', 'post__date', 'date', 'Article__Date', 'pb-timestamp', 
+    'lastupdatedtime', 'article__meta', 'post-time'
   ];
 
   for (let selector of possibleSelectors) {
@@ -210,15 +203,28 @@ function checkSelectors(article) {
     
     // Loop through elements to see if one is a date
     if (elements && elements.length) {
+      console.log(element)
       for (let element of elements) {
+        let dateString;
         let datetime = element.getAttribute('datetime');
+
         if (datetime) {
-          return datetime;
+          dateString = datetime;
+        } else {
+          // dateString = element.innerHTML.replace('at', '');
+          console.log(dateString)
+          dateString = element.innerHTML
+            .replace(/at|on|,/g, '')
+            .replace(/(\d{4}).*/, '$1')
+            .replace(/([0-9]st|nd|th)/g, '')
+            .replace(/.*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i, '')
+            .trim();
+
+          console.log(dateString)
         }
 
-        if (isValidDate(element.innerHTML)) {
-          return element.innerHTML;
-        }
+        let date = formatDate(dateString);
+        if (date) return date;
       }
     }
   }
@@ -226,27 +232,31 @@ function checkSelectors(article) {
   return null;
 }
 
-function isValidDate(date) {
-  date = Date.parse(date);
-
-  if (!isNaN(date)) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 function formatDate(dateString) {
+  if (!dateString) return null;
+
   var date = moment(dateString);
   const format = 'M/D/YY';
 
-  if (date._isValid) {
-    return moment.format(format);
+  if (date.isValid()) {
+    return date.format(format);
   } else {
     // Try to account for strangly formatted dates
-    // const timezones = [EST, EDT, CST, ]
-    //dateString
+    dateString = dateString.toLowerCase();
+    const timezones = ['est', 'cst', 'mst', 'pst', 'edt', 'cdt', 'mdt', 'pdt'];
 
+    for (let timezone of timezones) {
+      if (dateString.includes(timezone)) {
+        date = moment(dateString.substring(0, dateString.indexOf(timezone)));
+        if (date.isValid()) {
+          return date.format(format);
+        }
+
+        break;
+      }
+    }
+
+    // Could not parse date from string
     return null;
   }
 }
