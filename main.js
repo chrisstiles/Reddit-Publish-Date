@@ -36,19 +36,20 @@ document.onreadystatechange = function () {
         }
 
         function updateListings() {
-          // var wrapper = document.querySelectorAll('#siteTable');
           const links = document.querySelectorAll(`.link[data-context="listing"]`);
 
           if (links) {
             for (let link of links) {
-              if (!link.classList.contains('self') && !link.classList.contains('checked-date')) {
-                const id = link.getAttribute('data-fullname');
-                const url = link.getAttribute('data-url');
-
+              if (!link.classList.contains('checked-date')) {
                 link.classList.add('checked-date');
 
-                if (id && url && url.includes('http')) {
-                  updatePost(id, url);
+                if (!link.classList.contains('self')) {
+                  const id = link.getAttribute('data-fullname');
+                  const url = link.getAttribute('data-url');
+
+                  if (id && url && url.includes('http') && !url.includes('reddit.com')) {
+                    updatePost(id, url);
+                  }
                 }
               }
             }
