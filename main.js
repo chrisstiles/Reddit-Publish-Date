@@ -25,7 +25,8 @@ document.onreadystatechange = function () {
           const postElement = document.querySelector(`.id-t3_${postId}[data-context="listing"]`);
 
           if (postElement) {
-            const timestamp = postElement.querySelector('.live-timestamp');
+            postElement.classList.add('checked-date');
+            const timestamp = postElement.querySelector('.tagline time');
 
             if (timestamp) {
               createDateWrapper(postId, timestamp);
@@ -36,20 +37,24 @@ document.onreadystatechange = function () {
         }
 
         function updateListings() {
+          // var wrapper = document.querySelectorAll('#siteTable');
           const links = document.querySelectorAll(`.link[data-context="listing"]`);
 
           if (links) {
             for (let link of links) {
               if (!link.classList.contains('checked-date')) {
-                link.classList.add('checked-date');
-
+                
                 if (!link.classList.contains('self')) {
                   const id = link.getAttribute('data-fullname');
                   const url = link.getAttribute('data-url');
 
-                  if (id && url && url.includes('http') && !url.includes('reddit.com')) {
+                  if (id && shouldCheckURL(url)) {
                     updatePost(id, url);
+                  } else {
+                    link.classList.add('checked-date');
                   }
+                } else {
+                  link.classList.add('checked-date');
                 }
               }
             }
@@ -111,7 +116,8 @@ document.onreadystatechange = function () {
             const { id, sourceUrl, domain, media } = e.detail.data;
 
             // Do not add published date for media links or self posts
-            if (!media && domain && sourceUrl) {
+            if (!media && domain && shouldCheckURL(sourceUrl)) {
+              // console.log(domain, sourceUrl)
               updatePost(id, sourceUrl);
             }
           } else if (isCommentsPage && e.detail.type === 'postAuthor') {
@@ -210,11 +216,23 @@ document.onreadystatechange = function () {
         }
       }
 
+      function shouldCheckURL(url) {
+        if (!url || typeof url !== 'string' || !url.includes('http')) return false;
+        url = url.toLowerCase();
 
-      function getArticleHtml(url) {
-        // chrome.runtime.sendMessage({ url }, response => {
-        //   console.log(response);
-        // });
+        const invalidFileExtensions = ['jpg', 'jpeg', 'bmp', 'png', 'gif', 'gifv', 'mp4'];
+
+        for (let extension of invalidFileExtensions) {
+          if (url.includes(`.${extension}`)) return false;
+        }
+
+        const invalidDomains = ['reddit.com', 'redd.it', 'imgur.com', 'gfycat.com'];
+
+        for (let domain of invalidDomains) {
+          if (url.includes(`.${domain}`) || url.includes(`//${domain}`)) return false;
+        }
+
+        return true;
       }
 
 

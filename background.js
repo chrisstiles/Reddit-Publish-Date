@@ -45,8 +45,9 @@ function getArticleDate(postId, url, tabId) {
   // it should be safe to assume it is correct
   const urlDate = getDateFromURL(url);
   if (urlDate && isRecent(urlDate)) {
+    console.log('url date')
     const date = formatDate(urlDate);
-    sendDateMessage(tabId, postId, date);
+    sendDateMessage(tabId, postId, date)
     cachePublishDates(postId, urlDate);
     return;
   }
@@ -73,11 +74,10 @@ function sendDateMessage(tabId, postId, date) {
 }
 
 function getDateFromURL(url) {
-  const dateTest = /([\./\-_]{0,1}(19|20)\d{2})[\./\-_]{0,1}(([0-3]{0,1}[0-9][\./\-_])|(\w{3,5}[\./\-_]))([0-3]{0,1}[0-9][\./\-]{0,1})?/;
+  const dateTest = /([\./\-_]{0,1}(19|20)\d{2})[\./\-_]{0,1}(([0-3]{0,1}[0-9][\./\-_])|(\w{3,5}[\./\-_]))([0-3]{0,1}[0-9][\./\-]{0,1})/;
   const dateString = url.match(dateTest);
   
   if (dateString) {
-    window.test = dateString[0]
     return getMomentObject(dateString[0]);
   }
 
@@ -134,6 +134,7 @@ function getDateFromHTML(html) {
 
 window.getDate = function(url) {
   const urlDate = getDateFromURL(url);
+  console.log(isRecent(urlDate))
   if (urlDate && isRecent(urlDate)) {
     console.log('URL Date:');
     console.log(urlDate, getMomentObject(urlDate));
@@ -162,16 +163,28 @@ window.getDate = function(url) {
   }
 }
 
-const possibleKeys = ['datePublished', 'dateCreated', 'publishDate', 'published', 'uploadDate', 'date', 'publishedDate'];
+const possibleKeys = [
+  'datePublished', 'dateCreated', 'publishDate', 'published', 'uploadDate', 'date', 'publishedDate', 
+  'articleChangeDateShort', 'post_date'
+];
 
 function checkHTMLString(html) {
   if (!html) return null;
   const keys = possibleKeys.join('|');
-  const dateTest = new RegExp(`(?:\b(?:${possibleKeys.join('|')})["|']?\s*:\s*["|'])([A-Za-z0-9-_:]+)(?:"|')`, 'i');
-  const dateString = html.match(dateTest);
+  // const dateTest = new RegExp(`(?:\\b(?:${keys})["|']?\\s*:\\s*["|'])(.+)(?:"|')`, 'i');
+  // const dateTest = new RegExp(`(?:${keys})(?:"|')?\\s*:\\s*(["'])(?:(?=(\\?))\\2.)*?\\1`, 'i');
+  // const dateTest = new RegExp(`(?:${keys})(?:"|')?\\s*:\\s*(\\1"|')((?:(?=(\\?))\\2.)*?)\\1`, 'i');
+  const dateTest = new RegExp(`(?:${keys})(?:'|")?\\s?:\\s?(?:'|")([a-zA-Z0-9_.\\-: ]*)(?:'|")`, 'i');
 
-  if (dateString && dateString[3]) {
-    return getMomentObject(dateString[3]);
+
+  // (?:uploadDate)(?:'|")?\s?:\s?(?:'|")([a-zA-Z0-9_.\-:]*)(?:'|")
+  // (?:uploadDate)(?:'|")?\s?:\s?(?:'|")([a-zA-Z0-9_.\-:]*)(?:'|")
+
+  console.log(dateTest)
+  const dateString = html.match(dateTest);
+  console.log(dateString)
+  if (dateString && dateString[1]) {
+    return getMomentObject(dateString[1]);
   }
 
   return null;
@@ -180,12 +193,16 @@ function checkHTMLString(html) {
 function checkLinkedData(article) {
   // console.log('checkLinkedData()')
   var linkedData = article.querySelectorAll('script[type="application/ld+json"]');
+  console.log('here')
   // console.log(article)
   if (linkedData && linkedData.length) {
+    console.log(linkedData)
     // Some sites have more than one script tag with linked data
     for (let node of linkedData) {
+      console.log()
       try {
         let data = JSON.parse(node.innerHTML);
+        console.log(data)
 
         for (let key of possibleKeys) {
           if (data[key]) {
@@ -198,13 +215,8 @@ function checkLinkedData(article) {
         // The website has invalid JSON, attempt 
         // to get the date with Regex
         for (let key of possibleKeys) {
-          let dateTest = new RegExp(`/(?<=${key}":\s*")(\S+)(?=\s*",)/`);
-          dateString = node.innerHTML.match(dateTest);
-
-          if (dateString) {
-            let date = getMomentObject(dateString[0]);
-            if (date) return date;
-          }
+          let date = checkHTMLString(node.innerHTML);
+          if (date) return date;
         }
       }
     }
@@ -217,21 +229,30 @@ function checkMetaData(article) {
   // console.log('checkMetaData()')
   const possibleProperties = [
     'datePublished', 'article:published_time', 'article:published', 'pubdate', 'publishdate',
-    'timestamp', 'date', 'DC.date.issued', 'bt:pubDate', 'sailthru.date', 'meta',
-    'article.published', 'published-date', 'article.created', 'date_published', 
+    'timestamp', 'date', 'DC.date.issued', 'bt:pubDate', 'sailthru.date', 'meta', 'og:published_time',
+    'article.published', 'published-date', 'article.created', 'date_published', 'vr:published_time',
     'cxenseparse:recs:publishtime', 'article_date_original', 'cXenseParse:recs:publishtime', 
-    'DATE_PUBLISHED', 'shareaholic:article_published_time', 'parsely-pub-date', 'twt-published-at'
+    'DATE_PUBLISHED', 'shareaholic:article_published_time', 'parsely-pub-date', 'twt-published-at',
+    'published_date', 'dc.date', 'field-name-post-date', 'Last-modified'
   ];
 
   const metaData = article.querySelectorAll('meta');
 
   for (let meta of metaData) {
-    let property = meta.getAttribute('name') || meta.getAttribute('property') || meta.getAttribute('itemprop');
-
+    const property = meta.getAttribute('name') || meta.getAttribute('property') || meta.getAttribute('itemprop') || meta.getAttribute('http-equiv');
+    
     if (property && possibleProperties.includes(property)) {
-      let date = getMomentObject(meta.getAttribute('content'));
+      console.log(property)
+      const date = getMomentObject(meta.getAttribute('content'));
       if (date) return date;
     }
+  }
+
+  // Check page title
+  const title = article.querySelector('title');
+  if (title) {
+    const date = getDateFromString(title.innerText);
+    if (date) return date;
   }
 
   return null;
@@ -240,8 +261,10 @@ function checkMetaData(article) {
 function checkSelectors(article) {
   // console.log('checkSelectors()')
   const possibleSelectors = [
-    'datePublished', 'pubdate', 'timestamp', 'timeStamp', 'post__date', 'date', 'Article__Date', 'pb-timestamp', 'meta',
-    'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'Timestamp-time', 'report-writer-date'
+    'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post__date', 'Article__Date', 'pb-timestamp', 'meta',
+    'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'Timestamp-time', 'report-writer-date',
+    'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 'blog-post-meta', 'timeinfo-txt', 'field-name-post-date',
+    'post--meta', 'article-dateline', 'storydate', 'content-head', 'news_date'
   ];
 
   for (let selector of possibleSelectors) {
@@ -252,25 +275,53 @@ function checkSelectors(article) {
     if (elements && elements.length) {
       for (let element of elements) {
         console.log(element)
-        if (!element) {
-          console.log(element, elements, selector)
-          console.log(article)
-          return;
-        }
+        // if (!element) {
+        //   console.log(element, elements, selector)
+        //   console.log(article)
+        //   return;
+        // }
 
-        let dateString;
-        let dateAttribute = element.getAttribute('datetime') || element.getAttribute('content');
-
+        let dateElement = element.querySelector('time') || element;
+        let dateAttribute = dateElement.getAttribute('datetime') || dateElement.getAttribute('content');
+        // console.log(dateAttribute)
+        // console.log(dateAttribute)
         if (dateAttribute) {
           let date = getMomentObject(dateAttribute);
           if (date) return date;
         }
 
-        let date = getDateFromString(element.innerText);
+        const dateString = element.innerText || element.getAttribute('value');
+        let date = getDateFromString(dateString);
         if (date) return date;
       }
     }
   }
+
+  // Check more generic selectors that could be used for other dates
+  // We'll make sure to only check these if they're inside an article tag
+  const additionalSelectors = ['datetime', 'date'];
+  for (let selector of additionalSelectors) {
+    let element = article.querySelector(`.${selector}`);
+
+    if (element) {
+      let date = getDateFromString(element.innerText);
+      if (date) return date;
+    }
+  }
+
+  // Check for time elements that might be publication date
+  const timeElements = article.querySelectorAll('article time[datetime], time[pubdate]');
+  if (timeElements && timeElements.length) {
+    for (let element of timeElements) {element.getAttribute('datetime') || element.getAttribute('pubdate')
+      const dateString = element.getAttribute('datetime') || element.innerText;
+      console.log(dateString)
+      const date = getDateFromString(dateString);
+      if (date) return date;
+    }
+  }
+  // if (timeElement) {
+    
+  // }
 
   return null;
 }
@@ -281,7 +332,7 @@ function getDateFromString(string) {
   var date = getMomentObject(string);
   if (date) return date;
 
-  const numberDateTest = /\d{1,2}[\/-]\d{1,2}[\/-]\d{1,4}/;
+  const numberDateTest = /\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{1,4}/;
   var dateString = string.match(numberDateTest);
   if (dateString) date = getMomentObject(dateString[0]);
   if (date) return date;
@@ -303,16 +354,25 @@ function getDateFromString(string) {
 
 function getMomentObject(dateString) {
   if (!dateString) return null;
+  // var date;
 
-  // Account for dateStrings that are just a string
-  // of numbers i.e. 11082018
-  dateString.replace(/^(\d{2}|\d{4})(\d{2})(\d{2}|\d{4})$/, '$1-$2-$3');
+  // Account for dateStrings that are just a string of numbers i.e. 11082018
+  // First check dates formatted with month before day
+  // console.log(dateString)
+  // dateString = parseDigitOnlyDate(dateString);
+  // const singleLineDate = parseSingleLineDate(dateString);
+
+  // if (singleLineDate) {
+  //   date = moment(singleLineDate);
+  //   if (isValid(date)) return date;
+  // }
 
   var date = moment(dateString);
 
   if (isValid(date)) {
     return date;
   }
+
 
   // Try to account for strangly formatted dates
   dateString = dateString.toLowerCase();
@@ -330,17 +390,174 @@ function getMomentObject(dateString) {
   }
 
   // Some invalid date strings include the date without formatting
-  var dateNumbers = dateString.match(/\d{8}/);
+  // var dateNumbers = dateString.match(/\d{8}/);
+  const dateNumbers = parseDigitOnlyDate(dateString);
 
   if (dateNumbers) {
-    dateNumbers = dateNumbers[0].replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+    // dateNumbers = dateNumbers[0].replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
     date = moment(dateNumbers);
-    if (isValid(date)) {
-      return date;
-    }
+    if (isValid(date)) return date;
   }
 
+  console.log('FINALLY HERE: ', dateString)
+
+  // Use today's date if the string contains 'today'
+  if (dateString.includes('today')) {
+    return moment();
+  }
+  
+
   // Could not parse date from string
+  return null;
+}
+// (\d{1,2})(\d{1,4})$
+// function parseSingleLineDate(dateString) {
+//   if (!dateString) return null;
+//   if (moment.isMoment(dateString)) return dateString;
+
+//   // const dateTest = /^(2\d{3}|\d{4})(?:[\.\/-]?)(\d{1,2})(?:[\.\/-]?)(\d{1,2})|(\d{1,2})(?:[\.\/-]?)(\d{1,2})-(\d{1,4})$/;
+//   // const dateTest = /^(2\d{3}|\d{1,2})(\d{1,2})(\d{1,4})$/;
+//   const dateTest = /\\b((?:2\d{3})|(?:\d{1,2}))(?:[\.\/-]?)(\d{2})(?:[\.\/-]?)(\d{2,4})\\b/;
+
+//   const dateArray = String(dateString).match(dateTest);
+//   console.log(dateString)
+
+//   // const dateArray = dateString.replace(dateTest, '$1-$2-$3').split('-');
+
+//   // if (!dateArray || dateArray.length === 1) return dateString;
+
+//   if (dateArray && dateArray.length >= 4) {
+//     var day, month, year;
+//     console.log(dateArray)
+
+//     if (dateArray[1].length === 4) {
+//       console.log('here')
+//       year = dateArray[1];
+
+//       if (parseInt(dateArray[2]) > 12) {
+//         day = dateArray[2];
+//         month = dateArray[3];
+//       } else {
+//         day = dateArray[3];
+//         month = dateArray[2];
+//       }
+//     } else {
+//       console.log('there')
+//       year = dateArray[3];
+
+//       if (parseInt(dateArray[2]) > 12) {
+//         day = dateArray[2];
+//         month = dateArray[1];
+//       } else {
+//         day = dateArray[1];
+//         month = dateArray[2];
+//       }
+//     }
+
+//     return `${month}-${day}-${year}`;
+//   }
+
+//   return dateString;
+// }
+
+function parseDigitOnlyDate(dateString) {
+  if (!dateString) return null;
+  const matchedDate = dateString.replace(/\/|-\./g, '').match(/\b(\d{6}|\d{8})\b/);
+  console.log('here', dateString, matchedDate)
+  
+  var day, month, year, dayMonthArray;
+
+  if (matchedDate) {
+    var dateString = matchedDate[0];
+
+    if (dateString.length === 6) {
+      const dateArray = dateString.replace(/(\d{2})(\d{2})(\d{2})/, '$1-$2-$3').split('-');
+      console.log('come on ', dateArray)
+      if (Number(dateArray[0]) > 12) {
+        dayMonthArray = [dateArray[1], dateArray[0]];
+      } else {
+        dayMonthArray = [dateArray[0], dateArray[1]];
+      }
+
+      console.log('here it is: ', dayMonthArray)
+      year = dateArray[2];
+    } else {
+      if (Number(dateString[0]) !== 2) {
+        const dateArray = dateString.replace(/(\d{2})(\d{2})(\d{4})/, '$1-$2-$3').split('-');
+        if (dateArray) {
+          if (Number(dateArray[0]) > 12) {
+            dayMonthArray = [dateArray[1], dateArray[0]];
+          } else {
+            dayMonthArray = [dateArray[0], dateArray[1]];
+          }
+          
+          year = dateArray[2];
+        }
+        
+      } else {
+        const dateArray = dateString.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3').split('-');
+        if (dateArray) {
+          dayMonthArray = [dateArray[1], dateArray[2]]
+          year = dateArray[0];
+        }
+
+        // if (Number(dateArray[]))
+        // if (Number(dateArray[0] > 12)) {
+        //   day = dateArray[0];
+        //   month = dateArray[1];
+        // } else {
+        //   day = dateArray[1];
+        //   month = dateArray[0];
+        // }
+
+        // const dateArray = dateString.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3').split('-');
+
+        // year = dateArray[0];
+      }
+    }
+
+    // Date array is most likely [month, day], but try to check if possible
+    console.log(dayMonthArray)
+    const possibleMonth = Number(dayMonthArray[0]);
+    const possibleDay = Number(dayMonthArray[1]);
+    if (possibleMonth === possibleDay) {
+      console.log('here 1')
+      day = possibleDay;
+      month = possibleMonth;
+    } else if (possibleMonth > 12) {
+      console.log('here 2')
+      day = possibleMonth;
+      month = possibleDay;
+    } else {
+      // Have to guess which is month and which is date.
+      // We can guess using the current month and day
+      const currentMonth = Number(moment().format('M'));
+      const currentDay = Number(moment().format('D'));
+
+      // if (possibleDay === currentDay) {
+      //   console.log('here 3')
+      //   day = possibleDay;
+      //   month = possibleMonth;
+      // } else if (possibleDay === currentMonth) {
+      //   console.log('here 4')
+      //   day = possibleMonth;
+      //   month = possibleDay;
+      // } else {
+      //   console.log('here 5')
+        // day = possibleDay;
+        // month = possibleMonth;
+      // }
+      console.log('wtf')
+      day = possibleDay;
+      month = possibleMonth;
+
+    }
+    console.log('YAY')
+    console.log(`${month}-${day}-${year}`)
+    return `${month}-${day}-${year}`;
+    
+  }
+
   return null;
 }
 
@@ -390,7 +607,6 @@ function cachePublishDates(postId, date) {
     cachedDates[postId] = date.toISOString();
   }
   
-  // console.log(cachedDates)
   clearTimeout(cacheTimer);
   cacheTimer = setTimeout(() => {
     const obj = { publishDates: JSON.stringify(cachedDates) };
