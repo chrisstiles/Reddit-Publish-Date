@@ -25,7 +25,8 @@ document.onreadystatechange = function () {
           const postElement = document.querySelector(`.id-t3_${postId}[data-context="listing"]`);
 
           if (postElement) {
-            postElement.classList.add('checked-date');
+            // postElement.classList.add('checked-date');
+            postElement.setAttribute('checked-date', true);
             const timestamp = postElement.querySelector('.tagline time');
 
             if (timestamp) {
@@ -42,7 +43,8 @@ document.onreadystatechange = function () {
 
           if (links) {
             for (let link of links) {
-              if (!link.classList.contains('checked-date')) {
+              // if (!link.classList.contains('checked-date')) {
+              if (!link.hasAttribute('checked-date')) {
                 
                 if (!link.classList.contains('self')) {
                   const id = link.getAttribute('data-fullname');
@@ -51,10 +53,10 @@ document.onreadystatechange = function () {
                   if (id && shouldCheckURL(url)) {
                     updatePost(id, url);
                   } else {
-                    link.classList.add('checked-date');
+                    link.setAttribute('checked-date', true);
                   }
                 } else {
-                  link.classList.add('checked-date');
+                  link.setAttribute('checked-date', true);
                 }
               }
             }
@@ -152,12 +154,14 @@ document.onreadystatechange = function () {
           // console.log(postElement, `#${postId}`);
 
           if (postElement) {
+            console.log(postElement)
             // Return if we have already updated this element
-            if (postElement.classList.contains('checked-date')) {
+            if (postElement.hasAttribute('checked-date')) {
               return;
             }
 
-            postElement.classList.add('checked-date');
+            // postElement.classList.add('checked-date');
+            postElement.setAttribute('checked-date', 'true');
 
             // insert publish date after date posted on Reddit
             const timestamp = postElement.querySelector('[data-click-id="timestamp"]');
