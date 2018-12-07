@@ -58,7 +58,7 @@ function getArticleDate(postId, url, tabId) {
     if (!html && !urlDate) return;
 
     // Fallback to use the URL date if none was found in the HTML
-    const date = getDateFromHTML(html) || urlDate;
+    const date = getDateFromHTML(html, url) || urlDate;
 
     if (!date) return;
 
@@ -102,8 +102,10 @@ function getArticleHtml(url) {
     });
 }
 
-function getDateFromHTML(html) {
+function getDateFromHTML(html, url) {
   var publishDate = null;
+
+  if (url.includes('youtube.com') || url.includes('youtu.be')) return getYoutubeDate(html);
 
   // Try searching from just the HTML string with regex
   // We just look for JSON as it is not accurate to parse
@@ -140,7 +142,7 @@ window.getDate = function(url) {
     console.log(urlDate, getMomentObject(urlDate));
   } else {
     getArticleHtml(url).then(article => {
-      let date = getDateFromHTML(article);
+      let date = getDateFromHTML(article, url);
 
       if (date && urlDate) {
         if (date.isSame(urlDate, 'day')) {
@@ -165,11 +167,16 @@ window.getDate = function(url) {
 
 const possibleKeys = [
   'datePublished', 'dateCreated', 'publishDate', 'published', 'uploadDate', 'date', 'publishedDate', 
-  'articleChangeDateShort', 'post_date'
+  'articleChangeDateShort', 'post_date', 'dateText'
 ];
+const months = [
+  'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
+  'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'
+]
 
 function checkHTMLString(html) {
   if (!html) return null;
+
   const keys = possibleKeys.join('|');
   // const dateTest = new RegExp(`(?:\\b(?:${keys})["|']?\\s*:\\s*["|'])(.+)(?:"|')`, 'i');
   // const dateTest = new RegExp(`(?:${keys})(?:"|')?\\s*:\\s*(["'])(?:(?=(\\?))\\2.)*?\\1`, 'i');
@@ -180,13 +187,27 @@ function checkHTMLString(html) {
   // (?:uploadDate)(?:'|")?\s?:\s?(?:'|")([a-zA-Z0-9_.\-:]*)(?:'|")
   // (?:uploadDate)(?:'|")?\s?:\s?(?:'|")([a-zA-Z0-9_.\-:]*)(?:'|")
 
-  console.log(dateTest)
+
   const dateString = html.match(dateTest);
   console.log(dateString)
   if (dateString && dateString[1]) {
+    // dateString = dateString[1].toLowerCase().replace('published on', ''
     return getMomentObject(dateString[1]);
   }
 
+  return null;
+}
+
+function getYoutubeDate(html) {
+  if (!html) return null;
+
+  const dateTest = new RegExp(`(?:["']ytInitialData[",']][.\\s\\S]*dateText["'].*)((?:${months.join('|')}) \\d{1,2}, \\d{4})(?:['"])`, 'i');
+  const dateString = html.match(dateTest, 'i');
+
+  if (dateString && dateString[1]) {
+    return getMomentObject(dateString[1]);
+  }
+  
   return null;
 }
 
@@ -261,8 +282,8 @@ function checkMetaData(article) {
 function checkSelectors(article) {
   // console.log('checkSelectors()')
   const possibleSelectors = [
-    'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post__date', 'Article__Date', 'pb-timestamp', 'meta',
-    'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'Timestamp-time', 'report-writer-date',
+    'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post__date', 'Article__Date', 'pb-timestamp', 
+    'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'Timestamp-time', 'report-writer-date',
     'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 'blog-post-meta', 'timeinfo-txt', 'field-name-post-date',
     'post--meta', 'article-dateline', 'storydate', 'content-head', 'news_date'
   ];
@@ -337,7 +358,7 @@ function getDateFromString(string) {
   if (dateString) date = getMomentObject(dateString[0]);
   if (date) return date;
 
-  const stringDateTest = /(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\b \d{1,2},? {1,2}(\d{4}|\d{2})/i;
+  const stringDateTest = new RegExp(`/(${months.join('|')})\w*\b \d{1,2},? {1,2}(\d{4}|\d{2})/i`, 'i');
   dateString = string.match(stringDateTest);
   if (dateString) date = getMomentObject(dateString[0]);
   if (date) return date;
