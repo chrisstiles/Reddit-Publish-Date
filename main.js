@@ -115,8 +115,18 @@ document.onreadystatechange = function () {
           if (e.detail.type === 'post') {
             const { id, sourceUrl, domain, media } = e.detail.data;
 
+            var shouldCheckMedia = false;
+
+            if (media) {
+              var provider = media.provider.toLowerCase();
+
+              if (provider === 'youtube' || provider === 'vimeo') {
+                shouldCheckMedia = true;
+              }
+            }
+
             // Do not add published date for media links or self posts
-            if (!media && domain && shouldCheckURL(sourceUrl)) {
+            if (domain && shouldCheckMedia && shouldCheckURL(sourceUrl)) {
               // console.log(domain, sourceUrl)
               updatePost(id, sourceUrl);
             }
