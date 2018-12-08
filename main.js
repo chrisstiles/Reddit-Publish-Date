@@ -165,10 +165,10 @@ document.onreadystatechange = function () {
           }
 
           if (wrapper && !wrapper.hasAttribute('checked-date')) {
-            const url = wrapper.querySelector('a[rel="noopener noreferrer"]');
+            const link = wrapper.querySelector('a[rel="noopener noreferrer"]');
             
-            if (url) {
-              updatePost(id, url.getAttribute('href'), wrapper);
+            if (link) {
+              updatePost(id, link.getAttribute('href'), wrapper);
             }
           }
         }
@@ -177,11 +177,10 @@ document.onreadystatechange = function () {
           isCommentsPage = e.detail.location.pathname.includes('comments');
         }
 
-        var shouldFetch = true;
         updatePost = function (id, url, postElement) {
           // const postElement = document.querySelector(`#${id}`);
           // console.log(postElement, `#${id}`);
-          console.log(id, url, postElement)
+          // console.log(id, url, postElement)
           if (postElement) {
             // console.log(postElement)
             // Return if we have already updated this element
@@ -194,25 +193,12 @@ document.onreadystatechange = function () {
 
             // insert publish date after date posted on Reddit
             const timestamp = postElement.querySelector('[data-click-id="timestamp"]');
-            console.log(timestamp)
+            // console.log(timestamp)
 
             if (timestamp) {
               createDateWrapper(id, timestamp);
               // Get the date and insert into DOM
-              if (shouldFetch) {
-                // shouldFetch = false;
-
-                // getPublishedDate(url, date => {
-                //   insertPublishDate(date, timestamp);
-                // })
-
-                // getPublishedDate(url, function() {
-                //   insertPublishDate(date, timestamp);
-                // })
-
-                getPublishedDate(id, url);
-              }
-
+              getPublishedDate(id, url);
             }
           }
         }
@@ -240,9 +226,10 @@ document.onreadystatechange = function () {
         }
 
         const publishElement = document.createElement('span');
+        const selector = isCommentsPage ? `DatePublishedComments--${postId}` : `DatePublishedListing--${postId}`;
 
         publishElement.classList.add('publish-date');
-        publishElement.setAttribute('id', `DatePublished--${postId}`);
+        publishElement.setAttribute('id', selector);
         previousElement.parentNode.insertBefore(publishElement, previousElement.nextSibling);
       }
 
@@ -253,7 +240,13 @@ document.onreadystatechange = function () {
           return;
         }
 
-        const publishElement = document.querySelector(`#DatePublished--${postId}`);
+        const selector = isCommentsPage ? `DatePublishedComments--${postId}` : `DatePublishedListing--${postId}`;
+        const publishElement = document.querySelector(`#${selector}`);
+
+        if (isCommentsPage) {
+          console.log(publishElement)
+          console.log(postId, date)
+        }
 
         if (publishElement) {
           publishElement.innerHTML = `Published: ${date}`;
