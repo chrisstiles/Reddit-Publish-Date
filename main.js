@@ -116,7 +116,6 @@ document.onreadystatechange = function () {
         function handleElementAdded(e) {
           if (e.detail.type === 'post') {
             const { id, sourceUrl, domain, media } = e.detail.data;
-
             var shouldCheckMedia = false;
 
             if (media) {
@@ -128,8 +127,7 @@ document.onreadystatechange = function () {
             }
 
             // Do not add published date for media links or self posts
-            if (domain && shouldCheckMedia && shouldCheckURL(sourceUrl)) {
-              // console.log(domain, sourceUrl)
+            if (domain && (!media || shouldCheckMedia) && shouldCheckURL(sourceUrl)) {
               updatePost(id, sourceUrl);
             }
           } else if (isCommentsPage && e.detail.type === 'postAuthor') {
@@ -154,7 +152,7 @@ document.onreadystatechange = function () {
           // console.log(postElement, `#${postId}`);
 
           if (postElement) {
-            console.log(postElement)
+            // console.log(postElement)
             // Return if we have already updated this element
             if (postElement.hasAttribute('checked-date')) {
               return;
