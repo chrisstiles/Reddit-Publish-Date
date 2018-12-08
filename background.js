@@ -110,7 +110,7 @@ function getDateFromHTML(html, url) {
   // Try searching from just the HTML string with regex
   // We just look for JSON as it is not accurate to parse
   // HTML with regex, but is much faster than using the DOM
-  publishDate = checkHTMLString(html);
+  publishDate = checkHTMLString(html, url);
   if (publishDate) {
     console.log('Found in HTML String')
     console.log(publishDate);
@@ -166,30 +166,28 @@ window.getDate = function(url) {
 }
 
 const possibleKeys = [
-  'datePublished', 'dateCreated', 'publishDate', 'published', 'uploadDate', 'date', 'publishedDate', 
-  'articleChangeDateShort', 'post_date', 'dateText'
+  'datePublished', 'dateCreated', 'publishDate', 'published', 'uploadDate', 'publishedDate', 
+  'articleChangeDateShort', 'post_date', 'dateText', 'date'
 ];
 const months = [
   'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
   'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'
 ]
 
-function checkHTMLString(html) {
+function checkHTMLString(html, url) {
   if (!html) return null;
 
-  const keys = possibleKeys.join('|');
-  // const dateTest = new RegExp(`(?:\\b(?:${keys})["|']?\\s*:\\s*["|'])(.+)(?:"|')`, 'i');
-  // const dateTest = new RegExp(`(?:${keys})(?:"|')?\\s*:\\s*(["'])(?:(?=(\\?))\\2.)*?\\1`, 'i');
-  // const dateTest = new RegExp(`(?:${keys})(?:"|')?\\s*:\\s*(\\1"|')((?:(?=(\\?))\\2.)*?)\\1`, 'i');
-  const dateTest = new RegExp(`(?:${keys})(?:'|")?\\s?:\\s?(?:'|")([a-zA-Z0-9_.\\-: ]*)(?:'|")`, 'i');
+  // Certain websites include JSON data for other posts
+  // We don't attempt to parse the date from the HTML on these
+  // sites to prevent the wrong date being found
+  const skipDomains = ['talkingpointsmemo.com'];
+  for (let domain of skipDomains) {
+    if (url.includes(domain)) return null;
+  }
 
-
-  // (?:uploadDate)(?:'|")?\s?:\s?(?:'|")([a-zA-Z0-9_.\-:]*)(?:'|")
-  // (?:uploadDate)(?:'|")?\s?:\s?(?:'|")([a-zA-Z0-9_.\-:]*)(?:'|")
-
-
+  const dateTest = new RegExp(`(?:${possibleKeys.join('|')})(?:'|")?\\s?:\\s?(?:'|")([a-zA-Z0-9_.\\-:+ ]*)(?:'|")`, 'i');
   const dateString = html.match(dateTest);
-  console.log(dateString)
+
   if (dateString && dateString[1]) {
     // dateString = dateString[1].toLowerCase().replace('published on', ''
     return getMomentObject(dateString[1]);
@@ -214,33 +212,19 @@ function getYoutubeDate(html) {
   
   if (dateDifferenceArray && dateDifferenceArray.length >= 3) {
     return getDateFromRelativeTime(dateDifferenceArray[1], dateDifferenceArray[2]);
-    // const num = parseInt(dateDifferenceArray[1]);
-    // const units = dateDifferenceArray[2];
-    // window.html = html;
-    // console.log(num, units, dateDifferenceArray)
-    // console.log(dateDifferenceTest)
-    // if (num && units) {
-    //   const date = moment().subtract(num, units);
-    //   if (isValid(date)) return date;
-    // }
   }
   
   return null;
 }
 
 function checkLinkedData(article) {
-  // console.log('checkLinkedData()')
   var linkedData = article.querySelectorAll('script[type="application/ld+json"]');
-  console.log('here')
-  // console.log(article)
+
   if (linkedData && linkedData.length) {
-    console.log(linkedData)
     // Some sites have more than one script tag with linked data
     for (let node of linkedData) {
-      console.log()
       try {
         let data = JSON.parse(node.innerHTML);
-        console.log(data)
 
         for (let key of possibleKeys) {
           if (data[key]) {
@@ -264,7 +248,6 @@ function checkLinkedData(article) {
 }
 
 function checkMetaData(article) {
-  // console.log('checkMetaData()')
   const possibleProperties = [
     'datePublished', 'article:published_time', 'article:published', 'pubdate', 'publishdate',
     'timestamp', 'date', 'DC.date.issued', 'bt:pubDate', 'sailthru.date', 'meta', 'og:published_time',
