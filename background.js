@@ -202,10 +202,27 @@ function getYoutubeDate(html) {
   if (!html) return null;
 
   const dateTest = new RegExp(`(?:["']ytInitialData[",']][.\\s\\S]*dateText["'].*)((?:${months.join('|')}) \\d{1,2}, \\d{4})(?:['"])`, 'i');
-  const dateString = html.match(dateTest, 'i');
+  const dateArray = html.match(dateTest, 'i');
 
-  if (dateString && dateString[1]) {
-    return getMomentObject(dateString[1]);
+  if (dateArray && dateArray[1]) {
+    return getMomentObject(dateArray[1]);
+  }
+
+  // Parse videos where date is like "4 hours ago"
+  const dateDifferenceTest = /(?:["']ytInitialData[",']][.\s\S]*dateText["'].*["'](?:\w+ )+) ?(\d+) ((?:second|minute|hour|day|month|year)s?) (?:ago)(?:['"])/i
+  const dateDifferenceArray = html.match(dateDifferenceTest);
+  
+  if (dateDifferenceArray && dateDifferenceArray.length >= 3) {
+    return getDateFromRelativeTime(dateDifferenceArray[1], dateDifferenceArray[2]);
+    // const num = parseInt(dateDifferenceArray[1]);
+    // const units = dateDifferenceArray[2];
+    // window.html = html;
+    // console.log(num, units, dateDifferenceArray)
+    // console.log(dateDifferenceTest)
+    // if (num && units) {
+    //   const date = moment().subtract(num, units);
+    //   if (isValid(date)) return date;
+    // }
   }
   
   return null;
@@ -480,6 +497,16 @@ function getMomentObject(dateString) {
 
 //   return dateString;
 // }
+
+function getDateFromRelativeTime(num, units) {
+  if ((!num && num !== 0) || !units) return null;
+  if (!isNaN(num) && typeof units === 'string') {
+    const date = moment().subtract(num, units);
+    if (isValid(date)) return date;
+  }
+
+  return null;
+}
 
 function parseDigitOnlyDate(dateString) {
   if (!dateString) return null;
