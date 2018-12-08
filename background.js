@@ -288,7 +288,7 @@ function checkSelectors(article) {
     'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post__date', 'Article__Date', 'pb-timestamp', 
     'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'Timestamp-time', 'report-writer-date',
     'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 'blog-post-meta', 'timeinfo-txt', 'field-name-post-date',
-    'post--meta', 'article-dateline', 'storydate', 'content-head', 'news_date'
+    'post--meta', 'article-dateline', 'storydate', 'content-head', 'news_date', 'tk-soleil'
   ];
 
   for (let selector of possibleSelectors) {
