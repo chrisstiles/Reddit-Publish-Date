@@ -110,35 +110,66 @@ document.onreadystatechange = function () {
         meta.dispatchEvent(new CustomEvent('reddit.ready'));
 
         // Listen for jsapi events
-        document.addEventListener('reddit', handleElementAdded, true);
+        document.addEventListener('reddit', handleRedditEvent, true);
         document.addEventListener('reddit.urlChanged', handleUrlChanged, true);
+  
 
-        function handleElementAdded(e) {
-          if (e.detail.type === 'post') {
-            const { id, sourceUrl, domain, media } = e.detail.data;
-            var shouldCheckMedia = false;
+        function handleRedditEvent(e) {
+          const { type } = e.detail;
 
-            if (media) {
-              var provider = media.provider.toLowerCase();
-
-              if (provider === 'youtube' || provider === 'vimeo') {
-                shouldCheckMedia = true;
-              }
-            }
-
-            // Do not add published date for media links or self posts
-            if (domain && (!media || shouldCheckMedia) && shouldCheckURL(sourceUrl)) {
-              updatePost(id, sourceUrl);
-            }
-          } else if (isCommentsPage && e.detail.type === 'postAuthor') {
+          if (type === 'post') {
+            updateListingPage(e);
+          } else if (isCommentsPage && type === 'postAuthor') {
             // The 'post' event type doesn't run on comment
             // pages that aren't viewed in the modal window.
             // Instead we use the postAuthor type to know when the post has been added
-            console.log('postAuthor')
-            console.log(e)
-          } else if (e.detail.type === 'subreddit') {
-            console.log('subreddit')
-            console.log(e)
+            // console.log('postAuthor')
+            // console.log(e.detail)
+            // const { id } = e.detail.post;
+            updateCommentsPage(e);
+          } else if (type === 'subreddit') {
+            // console.log('subreddit')
+            // console.log(e)
+          }
+        }
+
+        function updateListingPage(e) {
+          const { id, sourceUrl: url, media } = e.detail.data;
+          if (!id) return;
+          // var shouldCheckMedia = false;
+
+          // if (media) {
+          //   var provider = media.provider.toLowerCase();
+
+          //   if (provider === 'youtube' || provider === 'vimeo') {
+          //     shouldCheckMedia = true;
+          //   }
+          // }
+
+          // Do not add published date for media links or self posts
+          if (shouldCheckURL(url, media)) {
+            const postElement = document.querySelector(`#${id}`);
+            updatePost(id, url, postElement);
+          }
+        }
+
+        function updateCommentsPage(e) {
+          // console.log(e)
+          const { id } = e.detail.data.post;
+          if (!id) return;
+
+          if (document.querySelector('#overlayScrollContainer')) {
+            var wrapper = document.querySelector(`#overlayScrollContainer #${id}`);
+          } else {
+            var wrapper = document.querySelector(`#${id}`);
+          }
+
+          if (wrapper && !wrapper.hasAttribute('checked-date')) {
+            const url = wrapper.querySelector('a[rel="noopener noreferrer"]');
+            
+            if (url) {
+              updatePost(id, url.getAttribute('href'), wrapper);
+            }
           }
         }
 
@@ -147,10 +178,10 @@ document.onreadystatechange = function () {
         }
 
         var shouldFetch = true;
-        updatePost = function (postId, url) {
-          const postElement = document.querySelector(`#${postId}`);
-          // console.log(postElement, `#${postId}`);
-
+        updatePost = function (id, url, postElement) {
+          // const postElement = document.querySelector(`#${id}`);
+          // console.log(postElement, `#${id}`);
+          console.log(id, url, postElement)
           if (postElement) {
             // console.log(postElement)
             // Return if we have already updated this element
@@ -163,9 +194,10 @@ document.onreadystatechange = function () {
 
             // insert publish date after date posted on Reddit
             const timestamp = postElement.querySelector('[data-click-id="timestamp"]');
+            console.log(timestamp)
 
             if (timestamp) {
-              createDateWrapper(postId, timestamp);
+              createDateWrapper(id, timestamp);
               // Get the date and insert into DOM
               if (shouldFetch) {
                 // shouldFetch = false;
@@ -178,7 +210,7 @@ document.onreadystatechange = function () {
                 //   insertPublishDate(date, timestamp);
                 // })
 
-                getPublishedDate(postId, url);
+                getPublishedDate(id, url);
               }
 
             }
@@ -228,7 +260,7 @@ document.onreadystatechange = function () {
         }
       }
 
-      function shouldCheckURL(url) {
+      function shouldCheckURL(url, media) {
         if (!url || typeof url !== 'string' || !url.includes('http')) return false;
         url = url.toLowerCase();
 
@@ -242,6 +274,14 @@ document.onreadystatechange = function () {
 
         for (let domain of invalidDomains) {
           if (url.includes(`.${domain}`) || url.includes(`//${domain}`)) return false;
+        }
+
+        if (media) {
+          const validMediaDomains = ['youtube.com', 'youtu.be', 'vimeo.com'];
+
+          for (let domain of validMediaDomains) {
+            if (url.includes(`.${domain}`) || url.includes(`//${domain}`)) return true;
+          }
         }
 
         return true;
