@@ -74,6 +74,11 @@ function sendDateMessage(tabId, postId, date) {
 }
 
 function getDateFromURL(url) {
+  const skipDomains = ['cnn.com/videos'];
+  for (let domain of skipDomains) {
+    if (url.includes(domain)) return null;
+  }
+
   const dateTest = /([\./\-_]{0,1}(19|20)\d{2})[\./\-_]{0,1}(([0-3]{0,1}[0-9][\./\-_])|(\w{3,5}[\./\-_]))([0-3]{0,1}[0-9][\./\-]{0,1})/;
   const dateString = url.match(dateTest);
   
@@ -123,7 +128,7 @@ function getDateFromHTML(html, url) {
   article.innerHTML = html;
   
   // Some websites include linked data with information about the article
-  publishDate = checkLinkedData(article);
+  publishDate = checkLinkedData(article, url);
 
   // Next try searching for metadata
   if (!publishDate) publishDate = checkMetaData(article);
@@ -185,11 +190,10 @@ function checkHTMLString(html, url) {
     if (url.includes(domain)) return null;
   }
 
-  const dateTest = new RegExp(`(?:${possibleKeys.join('|')})(?:'|")?\\s?:\\s?(?:'|")([a-zA-Z0-9_.\\-:+ ]*)(?:'|")`, 'i');
+  const dateTest = new RegExp(`(?:${possibleKeys.join('|')})(?:'|")?\\s?:\\s?(?:'|")([a-zA-Z0-9_.\\-:+, ]*)(?:'|")`, 'i');
   const dateString = html.match(dateTest);
 
   if (dateString && dateString[1]) {
-    // dateString = dateString[1].toLowerCase().replace('published on', ''
     return getMomentObject(dateString[1]);
   }
 
@@ -217,7 +221,7 @@ function getYoutubeDate(html) {
   return null;
 }
 
-function checkLinkedData(article) {
+function checkLinkedData(article, url) {
   var linkedData = article.querySelectorAll('script[type="application/ld+json"]');
 
   if (linkedData && linkedData.length) {
@@ -237,7 +241,7 @@ function checkLinkedData(article) {
         // The website has invalid JSON, attempt 
         // to get the date with Regex
         for (let key of possibleKeys) {
-          let date = checkHTMLString(node.innerHTML);
+          let date = checkHTMLString(node.innerHTML, url);
           if (date) return date;
         }
       }
@@ -254,7 +258,7 @@ function checkMetaData(article) {
     'article.published', 'published-date', 'article.created', 'date_published', 'vr:published_time',
     'cxenseparse:recs:publishtime', 'article_date_original', 'cXenseParse:recs:publishtime', 
     'DATE_PUBLISHED', 'shareaholic:article_published_time', 'parsely-pub-date', 'twt-published-at',
-    'published_date', 'dc.date', 'field-name-post-date', 'Last-modified'
+    'published_date', 'dc.date', 'field-name-post-date', 'Last-modified', 'posted'
   ];
 
   const metaData = article.querySelectorAll('meta');
@@ -280,7 +284,6 @@ function checkMetaData(article) {
 }
 
 function checkSelectors(article) {
-  // console.log('checkSelectors()')
   const possibleSelectors = [
     'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post__date', 'Article__Date', 'pb-timestamp', 
     'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'Timestamp-time', 'report-writer-date',
@@ -340,9 +343,6 @@ function checkSelectors(article) {
       if (date) return date;
     }
   }
-  // if (timeElement) {
-    
-  // }
 
   return null;
 }
@@ -375,38 +375,32 @@ function getDateFromString(string) {
 
 function getMomentObject(dateString) {
   if (!dateString) return null;
-  // var date;
-
-  // Account for dateStrings that are just a string of numbers i.e. 11082018
-  // First check dates formatted with month before day
-  // console.log(dateString)
-  // dateString = parseDigitOnlyDate(dateString);
-  // const singleLineDate = parseSingleLineDate(dateString);
-
-  // if (singleLineDate) {
-  //   date = moment(singleLineDate);
-  //   if (isValid(date)) return date;
-  // }
-
-  var date = moment(dateString);
-
-  if (isValid(date)) {
-    return date;
+  if (typeof dateString === 'string') {
+    dateString = dateString.toLowerCase();
   }
-
+  
+  var date = moment(dateString);
+  if (isValid(date)) return date;
 
   // Try to account for strangly formatted dates
-  dateString = dateString.toLowerCase();
   const timezones = ['est', 'cst', 'mst', 'pst', 'edt', 'cdt', 'mdt', 'pdt'];
 
   for (let timezone of timezones) {
     if (dateString.includes(timezone)) {
       date = moment(dateString.substring(0, dateString.indexOf(timezone)));
-      if (isValid(date)) {
-        return date;
-      }
+      if (isValid(date)) return date;
+    }
+  }
 
-      break;
+  for (let month of months) {
+    if (dateString.includes(month)) {
+      const monthSearch = new RegExp(`(\\d{1,4} )?${month}`);
+      const startIndex = dateString.search(monthSearch)
+      const yearIndex = dateString.search(/\d{4}/);
+      const endIndex = yearIndex === -1 ? dateString.length : yearIndex + 4;
+
+      date = moment(dateString.substring(startIndex, endIndex));
+      if (isValid(date)) return date;
     }
   }
 

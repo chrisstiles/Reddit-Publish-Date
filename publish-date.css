@@ -4,7 +4,7 @@
   box-shadow: 0px 0px 0px 1px #e8e8e8;
   padding: 0 4px;
   border-radius: 2px;
-  background:red;
+  background:green;
   color:#fff;
 }
 
@@ -20,5 +20,9 @@
 }
 
 .publish-date:empty {
-  display:none;
+  background-color:red;
+}
+
+.publish-date:empty:before {
+  content:"Date not found :("
 }
