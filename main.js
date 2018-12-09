@@ -1,225 +1,214 @@
-document.onreadystatechange = function () {
-  if (document.readyState === 'complete') {
+(function() {
+  chrome.runtime.sendMessage({ type: 'load-cache' });
 
-    chrome.runtime.sendMessage({ type: 'load-cache' });
+  const isOldReddit = document.querySelector('meta[name="jsapi"]') ? false : true;
+  var isCommentsPage = window.location.pathname.includes('comments');
 
-    chrome.runtime.onMessage.addListener(msg => {
-      if (msg === 'cache-loaded') {
-        execute();
+  // This will be changed to be the function that updates
+  // the post HTMl with the article date. The function
+  // will differ based on which version of Reddit we're using
+  var updatePost;
+
+  if (isOldReddit) {
+    // The old Reddit design uses traditional server-side rendering
+    updatePost = function (postId, url, postElement) {
+      postId = postId.replace('t3_', '');
+
+      if (postElement) {
+        postElement.setAttribute('checked-date', true);
+        const timestamp = postElement.querySelector('.tagline time');
+
+        if (timestamp) {
+          createDateWrapper(postId, timestamp);
+          getPublishedDate(postId, url);
+        }
+
       }
-    });
+    }
 
-    function execute() {
-      const isOldReddit = document.querySelector('meta[name="jsapi"]') ? false : true;
-      var isCommentsPage = window.location.pathname.includes('comments');
+    function updateListingPage() {
+      const links = document.querySelectorAll(`.link[data-context="listing"]`);
 
-      // This will be changed to be the function that updates
-      // the post HTMl with the article date. The function
-      // will differ based on which version of Reddit we're using
-      var updatePost;
-      
-      if (isOldReddit) {
-        // The old Reddit design uses traditional server-side rendering
-        updatePost = function (postId, url, postElement) {
-          postId = postId.replace('t3_', '');
-   
-          if (postElement) {
-            postElement.setAttribute('checked-date', true);
-            const timestamp = postElement.querySelector('.tagline time');
-
-            if (timestamp) {
-              createDateWrapper(postId, timestamp);
-              getPublishedDate(postId, url);
-            }
-            
-          }
-        }
-
-        function updateListingPage() {
-          const links = document.querySelectorAll(`.link[data-context="listing"]`);
-
-          if (links) {
-            for (let link of links) {
-              updateLink(link);
-            }
-          }
-        }
-
-        function updateCommentsPage() {
-          const link = document.querySelector('#siteTable .thing[data-type="link"]');
+      if (links) {
+        for (let link of links) {
           updateLink(link);
         }
+      }
+    }
 
-        function updateLink(link) {
-          if (!link) return;
+    function updateCommentsPage() {
+      const link = document.querySelector('#siteTable .thing[data-type="link"]');
+      updateLink(link);
+    }
 
-          if (!link.hasAttribute('checked-date')) {
+    function updateLink(link) {
+      if (!link) return;
 
-            if (!link.classList.contains('self')) {
-              const id = link.getAttribute('data-fullname');
-              const url = link.getAttribute('data-url');
+      if (!link.hasAttribute('checked-date')) {
 
-              if (id && shouldCheckURL(url)) {
-                updatePost(id, url, link);
-              } else {
-                link.setAttribute('checked-date', true);
-              }
-            } else {
-              link.setAttribute('checked-date', true);
-            }
-          }
-        }
+        if (!link.classList.contains('self')) {
+          const id = link.getAttribute('data-fullname');
+          const url = link.getAttribute('data-url');
 
-        if (isCommentsPage) {
-          updateCommentsPage();
-        } else {
-          updateListingPage();
-        }
-
-        // Re-check dates when reddit enhancement suite loads new posts
-        window.addEventListener('neverEndingLoad', updateListingPage, false);
-      } else {
-        // The new Reddit design uses Javascript to navigate
-        // Watch for jsapi events to know when post elements are added to the DOM
-        // Register extension
-        const meta = document.createElement('meta');
-        meta.name = 'Reddit Published Date';
-        meta.content = 'Reddit Published Date';
-        document.head.appendChild(meta);
-        meta.dispatchEvent(new CustomEvent('reddit.ready'));
-
-        // Listen for jsapi events
-        document.addEventListener('reddit', handleRedditEvent, true);
-        document.addEventListener('reddit.urlChanged', handleUrlChanged, true);
-  
-
-        function handleRedditEvent(e) {
-          const { type } = e.detail;
-
-          if (type === 'post') {
-            updateListingPage(e);
-          } else if (isCommentsPage && type === 'postAuthor') {
-            // The 'post' event type doesn't run on comment
-            // pages that aren't viewed in the modal window.
-            // Instead we use the postAuthor type to know when the post has been added
-            updateCommentsPage(e);
-          }
-        }
-
-        function updateListingPage(e) {
-          const { id, sourceUrl: url, media } = e.detail.data;
-          if (!id) return;
-
-          if (shouldCheckURL(url, media)) {
-            const postElement = document.querySelector(`#${id}`);
-            updatePost(id, url, postElement);
-          }
-        }
-
-        function updateCommentsPage(e) {
-          const { id } = e.detail.data.post;
-          if (!id) return;
-
-          if (document.querySelector('#overlayScrollContainer')) {
-            var wrapper = document.querySelector(`#overlayScrollContainer #${id}`);
+          if (id && shouldCheckURL(url)) {
+            updatePost(id, url, link);
           } else {
-            var wrapper = document.querySelector(`#${id}`);
+            link.setAttribute('checked-date', true);
           }
-
-          if (wrapper && !wrapper.hasAttribute('checked-date')) {
-            const link = wrapper.querySelector('a[rel="noopener noreferrer"]');
-            
-            if (link) {
-              updatePost(id, link.getAttribute('href'), wrapper);
-            }
-          }
-        }
-
-        function handleUrlChanged(e) {
-          isCommentsPage = e.detail.location.pathname.includes('comments');
-        }
-
-        updatePost = function (id, url, postElement) {
-          if (postElement) {
-            if (postElement.hasAttribute('checked-date')) {
-              return;
-            }
-
-            postElement.setAttribute('checked-date', 'true');
-
-            const timestamp = postElement.querySelector('[data-click-id="timestamp"]');
-
-            if (timestamp) {
-              createDateWrapper(id, timestamp);
-              getPublishedDate(id, url);
-            }
-          }
+        } else {
+          link.setAttribute('checked-date', true);
         }
       }
+    }
 
-      function getPublishedDate(postId, url) {
-        chrome.runtime.sendMessage({ postId, url, type: 'get-date' });
+    if (isCommentsPage) {
+      updateCommentsPage();
+    } else {
+      updateListingPage();
+    }
+
+    // Re-check dates when reddit enhancement suite loads new posts
+    window.addEventListener('neverEndingLoad', updateListingPage, false);
+  } else {
+    // The new Reddit design uses Javascript to navigate
+    // Watch for jsapi events to know when post elements are added to the DOM
+    // Register extension
+    const meta = document.createElement('meta');
+    meta.name = 'Reddit Published Date';
+    meta.content = 'Reddit Published Date';
+    document.head.appendChild(meta);
+    meta.dispatchEvent(new CustomEvent('reddit.ready'));
+
+    // Listen for jsapi events
+    document.addEventListener('reddit', handleRedditEvent, true);
+    document.addEventListener('reddit.urlChanged', handleUrlChanged, true);
+
+
+    function handleRedditEvent(e) {
+      const { type } = e.detail;
+
+      if (type === 'post') {
+        updateListingPage(e);
+      } else if (isCommentsPage && type === 'postAuthor') {
+        // The 'post' event type doesn't run on comment
+        // pages that aren't viewed in the modal window.
+        // Instead we use the postAuthor type to know when the post has been added
+        updateCommentsPage(e);
+      }
+    }
+
+    function updateListingPage(e) {
+      const { id, sourceUrl: url, media } = e.detail.data;
+      if (!id) return;
+
+      if (shouldCheckURL(url, media)) {
+        const postElement = document.querySelector(`#${id}`);
+        updatePost(id, url, postElement);
+      }
+    }
+
+    function updateCommentsPage(e) {
+      const { id } = e.detail.data.post;
+      if (!id) return;
+
+      if (document.querySelector('#overlayScrollContainer')) {
+        var wrapper = document.querySelector(`#overlayScrollContainer #${id}`);
+      } else {
+        var wrapper = document.querySelector(`#${id}`);
       }
 
-      // Handle background.js message with article date
-      chrome.runtime.onMessage.addListener(({ postId, date }) => {
-        if (date && postId) {
-          insertPublishDate(postId, date);
-        }
-      });
+      if (wrapper && !wrapper.hasAttribute('checked-date')) {
+        const link = wrapper.querySelector('a[rel="noopener noreferrer"]');
 
-      function createDateWrapper(postId, previousElement) {
-        if (!previousElement) {
+        if (link) {
+          updatePost(id, link.getAttribute('href'), wrapper);
+        }
+      }
+    }
+
+    function handleUrlChanged(e) {
+      isCommentsPage = e.detail.location.pathname.includes('comments');
+    }
+
+    updatePost = function (id, url, postElement) {
+      if (postElement) {
+        if (postElement.hasAttribute('checked-date')) {
           return;
         }
 
-        const publishElement = document.createElement('span');
-        const selector = isCommentsPage ? `DatePublishedComments--${postId}` : `DatePublishedListing--${postId}`;
+        postElement.setAttribute('checked-date', 'true');
 
-        publishElement.classList.add('rpd-publish-date');
-        publishElement.setAttribute('id', selector);
-        previousElement.parentNode.insertBefore(publishElement, previousElement.nextSibling);
-      }
+        const timestamp = postElement.querySelector('[data-click-id="timestamp"]');
 
-      function insertPublishDate(postId, date) {
-        if (!postId || !date) {
-          return;
-        }
-
-        const selector = isCommentsPage ? `DatePublishedComments--${postId}` : `DatePublishedListing--${postId}`;
-        const publishElement = document.querySelector(`#${selector}`);
-
-        if (publishElement) {
-          publishElement.innerHTML = `Published: ${date}`;
+        if (timestamp) {
+          createDateWrapper(id, timestamp);
+          getPublishedDate(id, url);
         }
       }
-
-      function shouldCheckURL(url, media) {
-        if (!url || typeof url !== 'string' || !url.includes('http')) return false;
-        url = url.toLowerCase();
-
-        const invalidFileExtensions = ['jpg', 'jpeg', 'bmp', 'png', 'gif', 'gifv', 'mp4', 'pdf'];
-
-        for (let extension of invalidFileExtensions) {
-          if (url.includes(`.${extension}`)) return false;
-        }
-
-        const invalidDomains = ['reddit.com', 'redd.it', 'imgur.com', 'gfycat.com'];
-
-        for (let domain of invalidDomains) {
-          if (url.includes(`.${domain}`) || url.includes(`//${domain}`)) return false;
-        }
-
-        if (media) {
-          const validMediaDomains = ['youtube.com', 'youtu.be', 'vimeo.com'];
-
-          for (let domain of validMediaDomains) {
-            if (url.includes(`.${domain}`) || url.includes(`//${domain}`)) return true;
-          }
-        }
-
-        return true;
-      }
-    }   
+    }
   }
-} 
+
+  function getPublishedDate(postId, url) {
+    chrome.runtime.sendMessage({ postId, url, type: 'get-date' });
+  }
+
+  // Handle background.js message with article date
+  chrome.runtime.onMessage.addListener(({ postId, date }) => {
+    if (date && postId) {
+      insertPublishDate(postId, date);
+    }
+  });
+
+  function createDateWrapper(postId, previousElement) {
+    if (!previousElement) {
+      return;
+    }
+
+    const publishElement = document.createElement('span');
+    const selector = isCommentsPage ? `DatePublishedComments--${postId}` : `DatePublishedListing--${postId}`;
+
+    publishElement.classList.add('rpd-publish-date');
+    publishElement.setAttribute('id', selector);
+    previousElement.parentNode.insertBefore(publishElement, previousElement.nextSibling);
+  }
+
+  function insertPublishDate(postId, date) {
+    if (!postId || !date) {
+      return;
+    }
+
+    const selector = isCommentsPage ? `DatePublishedComments--${postId}` : `DatePublishedListing--${postId}`;
+    const publishElement = document.querySelector(`#${selector}`);
+
+    if (publishElement) {
+      publishElement.innerHTML = `Published: ${date}`;
+    }
+  }
+
+  function shouldCheckURL(url, media) {
+    if (!url || typeof url !== 'string' || !url.includes('http')) return false;
+    url = url.toLowerCase();
+
+    const invalidFileExtensions = ['jpg', 'jpeg', 'bmp', 'png', 'gif', 'gifv', 'mp4', 'pdf'];
+
+    for (let extension of invalidFileExtensions) {
+      if (url.includes(`.${extension}`)) return false;
+    }
+
+    const invalidDomains = ['reddit.com', 'redd.it', 'imgur.com', 'gfycat.com'];
+
+    for (let domain of invalidDomains) {
+      if (url.includes(`.${domain}`) || url.includes(`//${domain}`)) return false;
+    }
+
+    if (media) {
+      const validMediaDomains = ['youtube.com', 'youtu.be', 'vimeo.com'];
+
+      for (let domain of validMediaDomains) {
+        if (url.includes(`.${domain}`) || url.includes(`//${domain}`)) return true;
+      }
+    }
+
+    return true;
+  }   
+})();

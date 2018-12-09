@@ -33,10 +33,13 @@ function getArticleDate(postId, url, tabId) {
   if (cachedDates.hasOwnProperty(postId)) {
     const date = formatDate(cachedDates[postId]);
     if (date) {
+      console.log('CACHED DATE')
       sendDateMessage(tabId, postId, date);
       return;
     }
   }
+
+  if (url.includes('wbir')) console.log(url);
 
   // Next we try to parse the date from the URL.
   // If it exists and it is within a month
@@ -58,7 +61,11 @@ function getArticleDate(postId, url, tabId) {
     // Fallback to use the URL date if none was found in the HTML
     const date = getDateFromHTML(html, url) || urlDate;
 
-    if (!date) return;
+    if (!date) {
+      console.log('Not Found:')
+      console.log(url)
+      return;
+    };
 
     // Publish date was successfully found, send to client script and cache
     sendDateMessage(tabId, postId, formatDate(date));
@@ -115,8 +122,8 @@ function getDateFromHTML(html, url) {
   // HTML with regex, but is much faster than using the DOM
   publishDate = checkHTMLString(html, url);
   if (publishDate) {
-    console.log('Found in HTML String')
-    console.log(publishDate);
+    // console.log('Found in HTML String')
+    // console.log(publishDate);
     return publishDate
   };
 
@@ -265,7 +272,7 @@ function checkMetaData(article) {
     const property = meta.getAttribute('name') || meta.getAttribute('property') || meta.getAttribute('itemprop') || meta.getAttribute('http-equiv');
     
     if (property && possibleProperties.includes(property)) {
-      console.log(property)
+      // console.log(property)
       const date = getMomentObject(meta.getAttribute('content'));
       if (date) return date;
     }
@@ -310,7 +317,7 @@ function checkSelectors(article, html) {
     // Loop through elements to see if one is a date
     if (elements && elements.length) {
       for (let element of elements) {
-        console.log(element)
+        // console.log(element)
         // if (!element) {
         //   console.log(element, elements, selector)
         //   console.log(article)
@@ -350,7 +357,7 @@ function checkSelectors(article, html) {
   if (timeElements && timeElements.length) {
     for (let element of timeElements) {element.getAttribute('datetime') || element.getAttribute('pubdate')
       const dateString = element.getAttribute('datetime') || element.innerText;
-      console.log(dateString)
+      // console.log(dateString)
       const date = getDateFromString(dateString);
       if (date) return date;
     }
@@ -426,7 +433,7 @@ function getMomentObject(dateString) {
     if (isValid(date)) return date;
   }
 
-  console.log('FINALLY HERE: ', dateString)
+  // console.log('FINALLY HERE: ', dateString)
 
   // Use today's date if the string contains 'today'
   if (dateString.includes('today')) {

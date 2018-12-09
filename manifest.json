@@ -49,6 +49,7 @@
         "https://*.reddit.com/*.json-html",
         "https://*.reddit.com/*.json-html?*"
       ],
+      "runs_at": "document_end",
       "js": [
         "main.js"
       ],
