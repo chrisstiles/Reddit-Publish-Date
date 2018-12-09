@@ -176,7 +176,7 @@ document.onreadystatechange = function () {
         const publishElement = document.createElement('span');
         const selector = isCommentsPage ? `DatePublishedComments--${postId}` : `DatePublishedListing--${postId}`;
 
-        publishElement.classList.add('publish-date');
+        publishElement.classList.add('rpd-publish-date');
         publishElement.setAttribute('id', selector);
         previousElement.parentNode.insertBefore(publishElement, previousElement.nextSibling);
       }

@@ -1,4 +1,4 @@
-.publish-date {
+.rpd-publish-date {
   margin-left: 2px;
   display: inline-block;
   box-shadow: 0px 0px 0px 1px #e8e8e8;
@@ -8,21 +8,21 @@
   color:#fff;
 }
 
-#siteTable .publish-date {
+#siteTable .rpd-publish-date {
   margin-left:4px;
 }
 
-.publish-date.old {
+.rpd-publish-date.old {
   box-shadow: 0px 0px 0px 1px #f9a8a8;
   background-color: #ffcfcf;
   color: #731010;
   font-weight: 600;
 }
 
-.publish-date:empty {
+.rpd-publish-date:empty {
   background-color:red;
 }
 
-.publish-date:empty:before {
+.rpd-publish-date:empty:before {
   content:"Date not found :("
 }
