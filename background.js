@@ -295,7 +295,7 @@ function checkSelectors(article, html) {
   // Since we can't account for every possible selector a site will use,
   // we check the HTML for CSS classes or IDs that might contain the publish date
   const possibleClassStrings = ['meta', 'publish'];
-  const classTest = new RegExp(`(?:(?:class|id)=")(.*(${possibleClassStrings.join('|')}).*)(?:")`, 'gim');
+  const classTest = new RegExp(`(?:(?:class|id)=")([ a-zA-Z0-9_-]*(${possibleClassStrings.join('|')})[ a-zA-Z0-9_-]*)(?:"?)`, 'gim');
   
   var classMatch;
   while (classMatch = classTest.exec(html)) {
