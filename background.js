@@ -130,11 +130,11 @@ function getDateFromHTML(html, url) {
   // Some websites include linked data with information about the article
   publishDate = checkLinkedData(article, url);
 
-  // Next try searching for metadata
+  // Next try searching <meta> tags
   if (!publishDate) publishDate = checkMetaData(article);
 
   // Try checking item props and CSS selectors
-  if (!publishDate) publishDate = checkSelectors(article);
+  if (!publishDate) publishDate = checkSelectors(article, html);
 
   return publishDate;
 }
@@ -283,13 +283,27 @@ function checkMetaData(article) {
   return null;
 }
 
-function checkSelectors(article) {
+function checkSelectors(article, html) {
   const possibleSelectors = [
-    'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post__date', 'Article__Date', 'pb-timestamp', 
-    'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'Timestamp-time', 'report-writer-date',
-    'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 'blog-post-meta', 'timeinfo-txt', 'field-name-post-date',
-    'post--meta', 'article-dateline', 'storydate', 'content-head', 'news_date', 'tk-soleil'
+    'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post-date', 'post__date', 'article-date', 'article_date', 
+    'Article__Date', 'pb-timestamp', 'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 
+    'Timestamp-time', 'report-writer-date', 'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 
+    'blog-post-meta', 'timeinfo-txt', 'field-name-post-date', 'post--meta', 'article-dateline', 'storydate', 
+    'content-head', 'news_date', 'tk-soleil', 'entry-content'
   ];
+
+  // Since we can't account for every possible selector a site will use,
+  // we check the HTML for CSS classes or IDs that might contain the publish date
+  const possibleClassStrings = ['meta', 'publish'];
+  const classTest = new RegExp(`(?:(?:class|id)=")(.*(${possibleClassStrings.join('|')}).*)(?:")`, 'gim');
+  
+  var classMatch;
+  while (classMatch = classTest.exec(html)) {
+    if (!possibleSelectors.includes(classMatch[1])) {
+      possibleSelectors.unshift(classMatch[1]);
+    }
+  }
+
 
   for (let selector of possibleSelectors) {
     let selectorString = `[itemprop="${selector}"], .${selector}, #${selector}`;
