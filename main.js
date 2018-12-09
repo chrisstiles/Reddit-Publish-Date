@@ -1,7 +1,7 @@
 document.onreadystatechange = function () {
   if (document.readyState === 'complete') {
 
-    chrome.runtime.sendMessage({ loadCache: true });
+    chrome.runtime.sendMessage({ type: 'load-cache' });
 
     chrome.runtime.onMessage.addListener(msg => {
       if (msg === 'cache-loaded') {
@@ -158,7 +158,7 @@ document.onreadystatechange = function () {
       }
 
       function getPublishedDate(postId, url) {
-        chrome.runtime.sendMessage({ postId, url });
+        chrome.runtime.sendMessage({ postId, url, type: 'get-date' });
       }
 
       // Handle background.js message with article date

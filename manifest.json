@@ -9,6 +9,10 @@
     "http://*/"
   ],
   "manifest_version": 2,
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": false
+  },
   "background": {
     "scripts": [
       "moment.js",

@@ -4,7 +4,6 @@ chrome.storage.local.clear(function () {
     console.error(error);
   }
 });
-
 var cachedDates = {};
 function loadCachedDates(tabId) {
   chrome.storage.local.get('publishDates', ({ publishDates: dates }) => {
@@ -20,14 +19,13 @@ function loadCachedDates(tabId) {
 }
 
 chrome.runtime.onMessage.addListener((request, sender) => {
-  const { postId, url, loadCache } = request;
+  const { type, postId, url } = request;
 
-  if (loadCache) {
+  if (type === 'load-cache') {
     loadCachedDates(sender.tab.id);
-    return;
-  } 
-
-  getArticleDate(postId, url, sender.tab.id);
+  } else if (type === 'get-date') {
+    getArticleDate(postId, url, sender.tab.id);
+  }
 });
 
 function getArticleDate(postId, url, tabId) {
@@ -296,7 +294,7 @@ function checkSelectors(article, html) {
   // we check the HTML for CSS classes or IDs that might contain the publish date
   const possibleClassStrings = ['meta', 'publish'];
   const classTest = new RegExp(`(?:(?:class|id)=")([ a-zA-Z0-9_-]*(${possibleClassStrings.join('|')})[ a-zA-Z0-9_-]*)(?:"?)`, 'gim');
-  
+
   var classMatch;
   while (classMatch = classTest.exec(html)) {
     if (!possibleSelectors.includes(classMatch[1])) {
@@ -605,8 +603,12 @@ function formatDate(date) {
   if (!moment.isMoment(date)) date = getMomentObject(date);
   if (!isValid(date)) return null;
 
-  const format = 'M/D/YY';
-  return date.format(format);
+  const { dateType, dateFormat } = options;
+  if (dateType === 'date') {
+    return date.format(dateFormat);
+  } else {
+    return date.fromNow();
+  }
 }
 
 function isValid(date) {
@@ -652,5 +654,26 @@ function cachePublishDates(postId, date) {
     chrome.storage.local.set(obj);
   }, 2000);
 }
+
+const options = {
+  dateType: 'date',
+  dateFormat: 'M/D/YY'
+};
+
+chrome.storage.sync.get({
+  dateType: 'date',
+  dateFormat: 'M/D/YY'
+}, ({ dateType, dateFormat }) => {
+  options.dateType = dateType;
+  // options.dateFormat = dateFormat;
+});
+
+chrome.runtime.onMessage.addListener((request, sender) => {
+  const { type, dateType } = request;
+
+  if (type === 'options-changed') {
+    options.dateType = dateType;
+  }
+});
 
 moment.suppressDeprecationWarnings = true;
