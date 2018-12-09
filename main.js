@@ -198,7 +198,7 @@ document.onreadystatechange = function () {
         if (!url || typeof url !== 'string' || !url.includes('http')) return false;
         url = url.toLowerCase();
 
-        const invalidFileExtensions = ['jpg', 'jpeg', 'bmp', 'png', 'gif', 'gifv', 'mp4'];
+        const invalidFileExtensions = ['jpg', 'jpeg', 'bmp', 'png', 'gif', 'gifv', 'mp4', 'pdf'];
 
         for (let extension of invalidFileExtensions) {
           if (url.includes(`.${extension}`)) return false;
