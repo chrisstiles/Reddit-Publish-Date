@@ -567,6 +567,14 @@ function formatDate(date) {
   if (dateType === 'date') {
     return date.format(dateFormat);
   } else {
+    return getRelativeDate(date);
+  }
+}
+
+function getRelativeDate(date) {
+  if (date.isAfter(moment()) && isToday(date)) {
+    return 'Today';
+  } else {
     return date.fromNow();
   }
 }
