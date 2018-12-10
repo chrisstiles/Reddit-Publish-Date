@@ -12,10 +12,10 @@
 
 chrome.runtime.onMessage.addListener((request, sender) => {
   const { type, postId, url } = request;
-  const { id: tabId } = sender.tab;
 
   // Check if the date has been cached before parsing page
   if (type === 'get-date') {
+    const { id: tabId } = sender.tab;
     chrome.storage.local.get(postId, dateObject => {
       if (dateObject[postId]) {
         const date = formatDate(dateObject[postId]);
@@ -65,7 +65,12 @@ function getDateFromPage(postId, url, tabId) {
 
 // Send date back to client script
 function sendDateMessage(tabId, postId, date) {
-  chrome.tabs.sendMessage(tabId, { postId, date });
+  const data = { postId, date };
+  if (options.showColors) {
+    data.className = 'green';
+  }
+
+  chrome.tabs.sendMessage(tabId, data);
 }
 
 function getArticleHtml(url) {
@@ -697,22 +702,22 @@ function clearOldCachedDates() {
 
 const options = {
   dateType: 'date',
-  dateFormat: 'M/D/YY'
+  dateFormat: 'M/D/YY',
+  showColors: true
 };
 
-chrome.storage.sync.get({
-  dateType: 'date',
-  dateFormat: 'M/D/YY'
-}, ({ dateType, dateFormat }) => {
+chrome.storage.sync.get(options, ({ dateType, dateFormat, showColors }) => {
   options.dateType = dateType;
+  options.showColors = showColors;
   // options.dateFormat = dateFormat;
 });
 
 chrome.runtime.onMessage.addListener((request, sender) => {
-  const { type, dateType } = request;
+  const { type, dateType, showColors } = request;
 
   if (type === 'options-changed') {
     options.dateType = dateType;
+    options.showColors = showColors;
   }
 });
 

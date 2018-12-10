@@ -151,9 +151,9 @@
   }
 
   // Handle background.js message with article date
-  chrome.runtime.onMessage.addListener(({ postId, date }) => {
+  chrome.runtime.onMessage.addListener(({ postId, date, className }) => {
     if (date && postId) {
-      insertPublishDate(postId, date);
+      insertPublishDate(postId, date, className);
     }
   });
 
@@ -170,7 +170,7 @@
     previousElement.parentNode.insertBefore(publishElement, previousElement.nextSibling);
   }
 
-  function insertPublishDate(postId, date) {
+  function insertPublishDate(postId, date, className) {
     if (!postId || !date) {
       return;
     }
@@ -180,6 +180,9 @@
 
     if (publishElement) {
       publishElement.innerHTML = `Published: ${date}`;
+      if (className) {
+        publishElement.classList.add(className);
+      }
     }
   }
 

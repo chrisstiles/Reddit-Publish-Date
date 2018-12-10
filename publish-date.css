@@ -4,7 +4,10 @@
   box-shadow: 0px 0px 0px 1px #e8e8e8;
   padding: 0 4px;
   border-radius: 2px;
-  background:green;
+}
+
+.rpd-publish-date.green {
+  background-color:green;
   color:#fff;
 }
 
@@ -20,9 +23,9 @@
 }
 
 .rpd-publish-date:empty {
-  background-color:red;
+  display:none;
 }
 
-.rpd-publish-date:empty:before {
+/* .rpd-publish-date:empty:before {
   content:"Date not found :("
-}
+} */
