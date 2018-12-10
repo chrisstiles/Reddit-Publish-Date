@@ -1,52 +1,42 @@
-chrome.storage.local.clear(function () {
-  var error = chrome.runtime.lastError;
-  if (error) {
-    console.error(error);
-  }
-});
-var cachedDates = {};
-function loadCachedDates(tabId) {
-  chrome.storage.local.get('publishDates', ({ publishDates: dates }) => {
-    chrome.tabs.sendMessage(tabId, 'cache-loaded');
-    if (dates) {
-      try {
-        cachedDates = JSON.parse(dates);
-      } catch {
-        cachedDates = {};
-      }
-    }
-  });
-}
+// chrome.storage.local.clear(function () {
+//   console.log('Clearing cache')
+//   var error = chrome.runtime.lastError;
+//   if (error) {
+//     console.error(error);
+//   }
+// });
+
+////////////////////////////
+// Find date from link
+////////////////////////////
 
 chrome.runtime.onMessage.addListener((request, sender) => {
   const { type, postId, url } = request;
+  const { id: tabId } = sender.tab;
 
-  if (type === 'load-cache') {
-    loadCachedDates(sender.tab.id);
-  } else if (type === 'get-date') {
-    getArticleDate(postId, url, sender.tab.id);
+  // Check if the date has been cached before parsing page
+  if (type === 'get-date') {
+    chrome.storage.local.get(postId, dateObject => {
+      if (dateObject[postId]) {
+        const date = formatDate(dateObject[postId]);
+        if (date) {
+          sendDateMessage(tabId, postId, date);
+          return;
+        }
+      }
+
+      getDateFromPage(postId, url, tabId);
+    });
   }
 });
 
-function getArticleDate(postId, url, tabId) {
-  // First check if we have this post cached
-  if (cachedDates.hasOwnProperty(postId)) {
-    const date = formatDate(cachedDates[postId]);
-    if (date) {
-      console.log('CACHED DATE')
-      sendDateMessage(tabId, postId, date);
-      return;
-    }
-  }
-
-  if (url.includes('wbir')) console.log(url);
-
-  // Next we try to parse the date from the URL.
+function getDateFromPage(postId, url, tabId) {
+  // First we try to parse the date from the URL.
   // If it exists and it is within a month
   // it should be safe to assume it is correct
   const urlDate = getDateFromURL(url);
   if (urlDate && isRecent(urlDate)) {
-    console.log('url date')
+    // console.log('url date')
     const date = formatDate(urlDate);
     sendDateMessage(tabId, postId, date)
     cachePublishDates(postId, urlDate);
@@ -78,22 +68,6 @@ function sendDateMessage(tabId, postId, date) {
   chrome.tabs.sendMessage(tabId, { postId, date });
 }
 
-function getDateFromURL(url) {
-  const skipDomains = ['cnn.com/videos'];
-  for (let domain of skipDomains) {
-    if (url.includes(domain)) return null;
-  }
-
-  const dateTest = /([\./\-_]{0,1}(19|20)\d{2})[\./\-_]{0,1}(([0-3]{0,1}[0-9][\./\-_])|(\w{3,5}[\./\-_]))([0-3]{0,1}[0-9][\./\-]{0,1})/;
-  const dateString = url.match(dateTest);
-  
-  if (dateString) {
-    return getMomentObject(dateString[0]);
-  }
-
-  return null;
-}
-
 function getArticleHtml(url) {
   const headers = new Headers();
   headers.append('Content-Type', 'text/html');
@@ -110,6 +84,26 @@ function getArticleHtml(url) {
     }).catch(error => {
       console.log(error)
     });
+}
+
+////////////////////////////
+// Date Parsing
+////////////////////////////
+
+function getDateFromURL(url) {
+  const skipDomains = ['cnn.com/videos'];
+  for (let domain of skipDomains) {
+    if (url.includes(domain)) return null;
+  }
+
+  const dateTest = /([\./\-_]{0,1}(19|20)\d{2})[\./\-_]{0,1}(([0-3]{0,1}[0-9][\./\-_])|(\w{3,5}[\./\-_]))([0-3]{0,1}[0-9][\./\-]{0,1})/;
+  const dateString = url.match(dateTest);
+  
+  if (dateString) {
+    return getMomentObject(dateString[0]);
+  }
+
+  return null;
 }
 
 function getDateFromHTML(html, url) {
@@ -392,6 +386,10 @@ function getDateFromString(string) {
   return getMomentObject(dateString);
 }
 
+////////////////////////////
+// Date Helpers
+////////////////////////////
+
 function getMomentObject(dateString) {
   if (!dateString) return null;
   if (typeof dateString === 'string') {
@@ -439,60 +437,10 @@ function getMomentObject(dateString) {
   if (dateString.includes('today')) {
     return moment();
   }
-  
 
   // Could not parse date from string
   return null;
 }
-// (\d{1,2})(\d{1,4})$
-// function parseSingleLineDate(dateString) {
-//   if (!dateString) return null;
-//   if (moment.isMoment(dateString)) return dateString;
-
-//   // const dateTest = /^(2\d{3}|\d{4})(?:[\.\/-]?)(\d{1,2})(?:[\.\/-]?)(\d{1,2})|(\d{1,2})(?:[\.\/-]?)(\d{1,2})-(\d{1,4})$/;
-//   // const dateTest = /^(2\d{3}|\d{1,2})(\d{1,2})(\d{1,4})$/;
-//   const dateTest = /\\b((?:2\d{3})|(?:\d{1,2}))(?:[\.\/-]?)(\d{2})(?:[\.\/-]?)(\d{2,4})\\b/;
-
-//   const dateArray = String(dateString).match(dateTest);
-//   console.log(dateString)
-
-//   // const dateArray = dateString.replace(dateTest, '$1-$2-$3').split('-');
-
-//   // if (!dateArray || dateArray.length === 1) return dateString;
-
-//   if (dateArray && dateArray.length >= 4) {
-//     var day, month, year;
-//     console.log(dateArray)
-
-//     if (dateArray[1].length === 4) {
-//       console.log('here')
-//       year = dateArray[1];
-
-//       if (parseInt(dateArray[2]) > 12) {
-//         day = dateArray[2];
-//         month = dateArray[3];
-//       } else {
-//         day = dateArray[3];
-//         month = dateArray[2];
-//       }
-//     } else {
-//       console.log('there')
-//       year = dateArray[3];
-
-//       if (parseInt(dateArray[2]) > 12) {
-//         day = dateArray[2];
-//         month = dateArray[1];
-//       } else {
-//         day = dateArray[1];
-//         month = dateArray[2];
-//       }
-//     }
-
-//     return `${month}-${day}-${year}`;
-//   }
-
-//   return dateString;
-// }
 
 function getDateFromRelativeTime(num, units) {
   if ((!num && num !== 0) || !units) return null;
@@ -646,21 +594,106 @@ function isRecent(date) {
   return date.isValid() && date.isBetween(lastMonth, tomorrow, 'day', '[]');
 }
 
-// Cache list of saved posts. We use a timer
-// to ensure we don't repeatedly 
+////////////////////////////
+// Caching
+////////////////////////////
+
+var cache = {};
+var hasLoadedCachedIds = false;
+var cachedIds = [];
+var currentIds = [];
+var isClearingCache = false;
 var cacheTimer;
+
 function cachePublishDates(postId, date) {
   if (!moment.isMoment(date)) date = getMomentObject(date);
-  if (isValid(date)) {
-    cachedDates[postId] = date.toISOString();
-  }
+  if (!date) return;
+  // if (isValid(date)) {
+  //   cachedDates[postId] = date.toISOString();
+  // }
+
+  // const obj = {};
+
+  cache[postId] = date.toISOString();
+  cacheId(postId);
+  startCacheTimer();
   
+
+  // date = date.toISOString();
+  // cache[postId] = JSON.stringify({ date, index: cachedIds.length });
+  // cache[postId] = { date, index: cachedIds.length - 1 };
+  
+  // console.log({ postId: date.toISOString() })
+  
+  // clearTimeout(cacheTimer);
+  // cacheTimer = setTimeout(() => {
+  //   const obj = { publishDates: JSON.stringify(cachedDates) };
+  //   chrome.storage.local.set(obj);
+  // }, 2000);
+}
+
+function cacheId(postId) {
+  if (!hasLoadedCachedIds) {
+    if (!currentIds.includes(postId)) {
+      currentIds.push(postId);
+    }
+
+    getCachedIds();
+  } else {
+    cachedIds.push(postId);
+  }
+}
+
+function getCachedIds() {
+  chrome.storage.local.get('cachedIds', ids => {
+    if (ids && ids.length) {
+      cachedIds = ids;
+
+      // Add new ids that haven't been cached in local storage yet
+      for (let id of currentIds) {
+        cachedIds.push(id);
+      }
+    } else {
+      cachedIds = currentIds.slice();
+    }
+
+    hasLoadedCachedIds = true;
+    currentIds = [];
+  });
+}
+
+function startCacheTimer() {
+  if (isClearingCache) return;
   clearTimeout(cacheTimer);
   cacheTimer = setTimeout(() => {
-    const obj = { publishDates: JSON.stringify(cachedDates) };
-    chrome.storage.local.set(obj);
+    cache.cachedIds = cachedIds;
+    // console.log(cache)
+    chrome.storage.local.set(cache, () => {
+      // console.log(postId)
+      const error = chrome.runtime.lastError;
+      if (error) console.log(error.message)
+      if (error && 
+          error.message && 
+          error.message.toLowerCase().includes('quota exceeded')) {
+        clearOldCachedDates();
+      }
+    });
   }, 2000);
 }
+
+function clearOldCachedDates() {
+  if (isClearingCache) return;
+  isClearingCache = true;
+  const oldIds = cachedIds.splice(0, cachedIds.length / 2);
+
+  chrome.storage.local.remove(oldIds, () => {
+    isClearingCache = false;
+  });
+}
+
+////////////////////////////
+// Extension Options
+////////////////////////////
 
 const options = {
   dateType: 'date',
@@ -684,3 +717,202 @@ chrome.runtime.onMessage.addListener((request, sender) => {
 });
 
 moment.suppressDeprecationWarnings = true;
+
+
+
+(function (window, document, undefined) {
+
+  var Storage = {};
+  window.Storage = Storage;
+
+  Storage.tracking = true;
+  Storage.track = function () {
+    Storage.tracking = !Storage.tracking;
+    if (Storage.tracking) {
+      console.log("Tracking storage performance.");
+    } else {
+      console.log("Not tracking storage performance.");
+    }
+  }
+
+  Storage.KB = 1024;
+  Storage.MB = 1024 * 1024;
+  Storage.GB = 1024 * 1024 * 1024;
+
+  Storage.showTotalBytes = function () {
+    function callback(bytes) {
+      console.log("Total bytes in use: " + bytes);
+    }
+    if (arguments.length == 0) {
+      return chrome.storage.local.getBytesInUse(null, callback);
+    } else {
+      var ary = arguments.slice();
+      ary.push(callback);
+      return chrome.storage.local.getBytesInUse.apply(null, ary);
+    }
+  };
+
+  // Print entry list to console.
+  Storage.getEntryList = function (callback) {
+    if (typeof callback == 'undefined') {
+      callback = function (ids) {
+        console.log(ids);
+      }
+    }
+
+    chrome.storage.local.get("index:ids", function (items) {
+      if (chrome.runtime.lastError) {
+        console.log("Error retrieving index: " + chrome.runtime.lastError);
+        return;
+      }
+      var ids = items["index:ids"];
+      callback(ids);
+    });
+  };
+
+  Storage.getEntry = function (id) {
+    var start = performance.now();
+    chrome.storage.local.get(id, function (items) {
+      if (chrome.runtime.lastError) {
+        console.log("Error retrieving entry: " + chrome.runtime.lastError);
+        return;
+      }
+      if (!items[id]) {
+        console.log("Entry not found.");
+      }
+      var end = performance.now();
+      console.log("Entry retrieved in " + (end - start) + " ms.");
+    });
+  }
+
+  // Store a value with the specified key, save the key to the index.
+  Storage.store = function (key, value) {
+    var storeKey = "data:" + key;
+    chrome.storage.local.get("index:ids", function (items) {
+      if (chrome.runtime.lastError) {
+        console.log("Error retrieving index: " + chrome.runtime.lastError);
+        return;
+      }
+      var ids = items["index:ids"];
+      ids.push(storeKey);
+      var store = {};
+      var start = performance.now();
+      store["index:ids"] = ids;
+      store[storeKey] = value;
+      chrome.storage.local.set(store, function () {
+        if (chrome.runtime.lastError) {
+          console.log("Error Storing: ", chrome.runtime.lastError);
+        }
+        var end = performance.now();
+        console.log("Value stored in " + (end - start) + " ms.");
+      });
+    });
+  };
+
+  // Get a string with the specified number of bytes.
+  Storage.getData = function (bytes) {
+    var chars = [];
+    for (var i = 0; i < bytes; i++) {
+      chars.push('A');
+    }
+    return chars.join('');
+  };
+
+  // Create and add an arbitrary entry to the local storage.
+  Storage.addEntry = function (bytes) {
+    var id = Storage._guid();
+    var data = Storage.getData(bytes);
+    Storage.store(id, data);
+    Storage.updateSizes();
+  };
+
+  Storage.getSizes = function (callback) {
+    if (typeof callback == 'undefined') {
+      callback = function (info) {
+        console.log(info);
+      }
+    }
+    chrome.storage.local.get("index:size", function (items) {
+      var sizes = items["index:size"];
+      callback(sizes);
+    })
+  };
+
+  Storage.updateSizes = function () {
+    function waitUntilCondition(cond, fn) {
+      if (cond()) {
+        fn();
+      } else {
+        setTimeout(function () {
+          waitUntilCondition(cond, fn);
+        }, 20);
+      }
+    }
+
+    Storage.getEntryList(function (ids) {
+      var error = false;
+      var checked = {};
+      ids.forEach(function (id) {
+        checked[id] = false;
+      });
+      var sizes;
+      chrome.storage.local.get("index:size", function (items) {
+        if (chrome.runtime.lastError) {
+          console.log("Error: " + chrome.runtime.lastError);
+          error = true;
+          return;
+        }
+        sizes = items["index:size"];
+
+        ids.forEach(function (id) {
+          if (!sizes.hasOwnProperty(id)) {
+            chrome.storage.local.getBytesInUse(id, function (size) {
+              sizes[id] = size;
+              checked[id] = true;
+            });
+          } else {
+            checked[id] = true;
+          }
+        });
+      });
+      waitUntilCondition(function () {
+        return ids.every(function (id) { return checked[id]; });
+      }, function () {
+        chrome.storage.local.set({
+          "index:size": sizes
+        });
+      });
+    });
+  };
+
+  Storage._guid = function () {
+    function s4() {
+      return Math.floor((1 + Math.random()) * 0x10000)
+        .toString(16)
+        .substring(1);
+    }
+    return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+      s4() + '-' + s4() + s4() + s4();
+  };
+
+  chrome.runtime.onInstalled.addListener(updateFunction);
+  function updateFunction(details) {
+    var previousVersion = details.previousVersion;
+    var version = chrome.runtime.getManifest().version;
+
+    // Get/set settings.
+    chrome.storage.local.get(["index:ids", "index:size"], function (result) {
+      if (!result["index:ids"]) {
+        chrome.storage.local.set({
+          "index:ids": []
+        });
+      }
+      if (!result["index:size"]) {
+        chrome.storage.local.set({
+          "index:size": {}
+        });
+      }
+    });
+  }
+
+})(window, document);

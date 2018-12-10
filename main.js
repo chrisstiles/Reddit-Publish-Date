@@ -1,6 +1,4 @@
 (function() {
-  chrome.runtime.sendMessage({ type: 'load-cache' });
-
   const isOldReddit = document.querySelector('meta[name="jsapi"]') ? false : true;
   var isCommentsPage = window.location.pathname.includes('comments');
 
