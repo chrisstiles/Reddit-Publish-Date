@@ -1,31 +1,61 @@
-.rpd-publish-date {
-  margin-left: 2px;
-  display: inline-block;
-  box-shadow: 0px 0px 0px 1px #e8e8e8;
-  padding: 0 4px;
-  border-radius: 2px;
-}
-
-.rpd-publish-date.green {
-  background-color:green;
-  color:#fff;
-}
-
-#siteTable .rpd-publish-date {
-  margin-left:4px;
-}
-
-.rpd-publish-date.old {
-  box-shadow: 0px 0px 0px 1px #f9a8a8;
-  background-color: #ffcfcf;
-  color: #731010;
-  font-weight: 600;
-}
+/*-----------------------*/
+/* General */
 
 .rpd-publish-date:empty {
   display:none;
 }
 
-/* .rpd-publish-date:empty:before {
-  content:"Date not found :("
+/*-----------------------*/
+/* Text Dates */
+
+.rpd-publish-date.text:before {
+  content:"| "
+}
+#siteTable .rpd-publish-date.text {
+  margin-left:-1px;
+  text-transform:lowercase;
+}
+
+#siteTable .rpd-publish-date.text:before {
+  margin-right:1px;
+}
+
+.rpd-publish-date.text.green span {
+  color:green;
+}
+
+
+/* .rpd-publish-date.old {
+  box-shadow: 0px 0px 0px 1px #f9a8a8;
+  background-color: #ffcfcf;
+  color: #731010;
+  font-weight: 600;
 } */
+
+/* .rpd-publish-date strong {
+  font-weight:600;
+} */
+
+/*-----------------------*/
+/* Bubble Dates */
+
+.rpd-publish-date.bubble {
+  margin-left: 2px;
+  display: inline-block;
+  background-color: #fff;
+  box-shadow: 0px 0px 0px 1px #dadada;
+  padding: 0px 4px;
+  margin: 0 3px 0 3px;
+  border-radius: 1px;
+}
+
+#siteTable .rpd-publish-date.bubble {
+  padding: 0px 2px;
+  margin: 0 4px 0 1px;
+}
+
+.rpd-publish-date.bubble.green {
+  background-color:green;
+  box-shadow: 0px 0px 0px 1px green;
+  color:#fff;
+}

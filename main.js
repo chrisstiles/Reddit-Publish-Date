@@ -14,10 +14,10 @@
 
       if (postElement) {
         postElement.setAttribute('checked-date', true);
-        const timestamp = postElement.querySelector('.tagline time');
+        const author = postElement.querySelector('.author');
 
-        if (timestamp) {
-          createDateWrapper(postId, timestamp);
+        if (author) {
+          createDateWrapper(postId, author);
           getPublishedDate(postId, url);
         }
 
@@ -139,8 +139,12 @@
         const timestamp = postElement.querySelector('[data-click-id="timestamp"]');
 
         if (timestamp) {
-          createDateWrapper(id, timestamp);
-          getPublishedDate(id, url);
+          // const element = isCommentsPage ? timestamp.previousSibling : timestamp.parentNode;
+
+          // if (element) {
+            createDateWrapper(id, timestamp);
+            getPublishedDate(id, url);
+          // }
         }
       }
     }
@@ -151,9 +155,9 @@
   }
 
   // Handle background.js message with article date
-  chrome.runtime.onMessage.addListener(({ postId, date, className }) => {
+  chrome.runtime.onMessage.addListener(({ postId, date, cssClasses }) => {
     if (date && postId) {
-      insertPublishDate(postId, date, className);
+      insertPublishDate(postId, date, cssClasses);
     }
   });
 
@@ -167,10 +171,15 @@
 
     publishElement.classList.add('rpd-publish-date');
     publishElement.setAttribute('id', selector);
-    previousElement.parentNode.insertBefore(publishElement, previousElement.nextSibling);
+    
+    if (isOldReddit) {
+      previousElement.parentNode.insertBefore(publishElement, previousElement.nextSibling);
+    } else {
+      previousElement.parentNode.append(publishElement);
+    }
   }
 
-  function insertPublishDate(postId, date, className) {
+  function insertPublishDate(postId, date, cssClasses) {
     if (!postId || !date) {
       return;
     }
@@ -179,9 +188,9 @@
     const publishElement = document.querySelector(`#${selector}`);
 
     if (publishElement) {
-      publishElement.innerHTML = `Published: ${date}`;
-      if (className) {
-        publishElement.classList.add(className);
+      publishElement.innerHTML = `<span>Published ${date}</span>`;
+      if (cssClasses.length) {
+        publishElement.classList.add(...cssClasses);
       }
     }
   }

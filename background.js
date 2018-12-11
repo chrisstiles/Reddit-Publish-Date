@@ -66,9 +66,20 @@ function getDateFromPage(postId, url, tabId) {
 // Send date back to client script
 function sendDateMessage(tabId, postId, date) {
   const data = { postId, date };
-  if (options.showColors) {
-    data.className = 'green';
+  const { displayType, showColors } = options;
+  const cssClasses = [];
+
+  if (displayType === 'bubble') {
+    cssClasses.push('bubble');
+  } else {
+    cssClasses.push('text');
   }
+
+  if (showColors) {
+    cssClasses.push('green');
+  }
+
+  data.cssClasses = cssClasses;
 
   chrome.tabs.sendMessage(tabId, data);
 }
@@ -709,23 +720,25 @@ function clearOldCachedDates() {
 ////////////////////////////
 
 const options = {
-  dateType: 'date',
+  dateType: 'relative',
   dateFormat: 'M/D/YY',
-  showColors: true
+  showColors: true,
+  displayType: 'text'
 };
 
-chrome.storage.sync.get(options, ({ dateType, dateFormat, showColors }) => {
+chrome.storage.sync.get(options, ({ dateType, dateFormat, showColors, displayType }) => {
   options.dateType = dateType;
   options.showColors = showColors;
-  // options.dateFormat = dateFormat;
+  options.displayType = displayType;
 });
 
 chrome.runtime.onMessage.addListener((request, sender) => {
-  const { type, dateType, showColors } = request;
+  const { type, dateType, showColors, displayType } = request;
 
   if (type === 'options-changed') {
     options.dateType = dateType;
     options.showColors = showColors;
+    options.displayType = displayType;
   }
 });
 
