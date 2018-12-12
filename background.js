@@ -18,11 +18,8 @@ chrome.runtime.onMessage.addListener((request, sender) => {
     const { id: tabId } = sender.tab;
     chrome.storage.local.get(postId, dateObject => {
       if (dateObject[postId]) {
-        const date = formatDate(dateObject[postId]);
-        if (date) {
-          sendDateMessage(tabId, postId, date);
-          return;
-        }
+        sendDateMessage(tabId, postId, dateObject[postId]);
+        return;
       }
 
       getDateFromPage(postId, url, tabId);
@@ -37,8 +34,8 @@ function getDateFromPage(postId, url, tabId) {
   const urlDate = getDateFromURL(url);
   if (urlDate && isRecent(urlDate)) {
     // console.log('url date')
-    const date = formatDate(urlDate);
-    sendDateMessage(tabId, postId, date)
+    // const date = formatDate(urlDate);
+    sendDateMessage(tabId, postId, urlDate)
     cachePublishDates(postId, urlDate);
     return;
   }
@@ -58,30 +55,37 @@ function getDateFromPage(postId, url, tabId) {
     };
 
     // Publish date was successfully found, send to client script and cache
-    sendDateMessage(tabId, postId, formatDate(date));
+    sendDateMessage(tabId, postId, date);
     cachePublishDates(postId, date);
   });
 }
 
 // Send date back to client script
 function sendDateMessage(tabId, postId, date) {
-  const data = { postId, date };
-  const { displayType, showColors } = options;
-  const cssClasses = [];
+  const formattedDate = formatDate(date);
+  console.log(date)
+  if (formattedDate) {
+    const data = { postId, date: formattedDate };
+    const { displayType, showColors } = options;
+    const cssClasses = [];
 
-  if (displayType === 'bubble') {
-    cssClasses.push('bubble');
-  } else {
-    cssClasses.push('text');
+    if (displayType === 'rpd-bubble') {
+      cssClasses.push('rpd-bubble');
+    } else {
+      cssClasses.push('rpd-text');
+    }
+
+    if (showColors) {
+      cssClasses.push('rpd-color');
+      cssClasses.push(getColorClass(date));
+    } else {
+      cssClasses.push('rpd-no-color');
+    }
+
+    data.cssClasses = cssClasses;
+
+    chrome.tabs.sendMessage(tabId, data);
   }
-
-  if (showColors) {
-    cssClasses.push('green');
-  }
-
-  data.cssClasses = cssClasses;
-
-  chrome.tabs.sendMessage(tabId, data);
 }
 
 function getArticleHtml(url) {
@@ -590,13 +594,74 @@ function getRelativeDate(date) {
   }
 }
 
+function getColorClass(_date) {
+  const date = moment(_date);
+  if (!isValid(date)) return 'invalid';
+  
+  const today = moment();
+  if (date.isAfter(today, 'd')) {
+    return 'future';
+  }
+
+  today.startOf('d');
+
+  // Today or yesterday
+  const yesterday = today.clone().subtract(1, 'd').startOf('d');
+  if (isToday(date) || date.isSame(yesterday, 'd')) {
+    return 'rpd-1';
+  }
+
+  // 2 days - 1 week
+  const oneWeekAgo = today.clone().subtract(7, 'd').startOf('d');
+  if (date.isSameOrAfter(oneWeekAgo, 'd')) {
+    return 'rpd-2';
+  }
+
+  // 1 week - 2 weeks
+  const twoWeeksAgo = today.clone().subtract(14, 'd').startOf('d');
+  if (date.isSameOrAfter(twoWeeksAgo, 'd')) {
+    return 'rpd-3';
+  }
+
+  // 2 weeks - 1 month
+  const oneMonthAgo = today.clone().subtract(1, 'M').startOf('d');
+  if (date.isSameOrAfter(oneMonthAgo, 'd')) {
+    return 'rpd-4';
+  }
+
+  // 1 month - 3 months
+  const threeMonthsAgo = today.clone().subtract(3, 'M').startOf('d');
+  if (date.isSameOrAfter(threeMonthsAgo, 'd')) {
+    return 'rpd-5';
+  }
+
+  // 3 months - 6 months
+  const sixMonthsAgo = today.clone().subtract(6, 'M').startOf('d');
+  if (date.isSameOrAfter(sixMonthsAgo, 'd')) {
+    return 'rpd-6';
+  }
+
+  // 6 months - 1 year
+  const oneYearAgo = today.clone().subtract(1, 'y').startOf('d');
+  if (date.isSameOrAfter(oneYearAgo, 'd')) {
+    return 'rpd-7';
+  }
+
+  // More than 1 year old
+  if (date.isBefore(oneYearAgo, 'd')) {
+    return 'rpd-8';
+  };
+
+  return 'rpd-invalid';
+}
+
 function isValid(date) {
   if (!moment.isMoment(date)) date = moment(date);
 
   // Check if the date is on or before tomorrow to account for time zone differences
-  const tomorrow = moment().add(1, 'days');
+  const tomorrow = moment().add(1, 'd');
 
-  return date.isValid() && date.isSameOrBefore(tomorrow, 'day');
+  return date.isValid() && date.isSameOrBefore(tomorrow, 'd');
 }
 
 function isToday(date) {
@@ -605,17 +670,17 @@ function isToday(date) {
 
   const today = moment();
 
-  return date.isValid() && date.isSame(today, 'day');
+  return date.isValid() && date.isSame(today, 'd');
 }
 
 function isRecent(date) {
   if (!date) return false;
   if (!moment.isMoment(date)) date = getMomentObject(date);
 
-  const tomorrow = moment().add(1, 'days');
-  const lastMonth = tomorrow.clone().subtract(31, 'days');
+  const tomorrow = moment().add(1, 'd');
+  const lastMonth = tomorrow.clone().subtract(31, 'd');
 
-  return date.isValid() && date.isBetween(lastMonth, tomorrow, 'day', '[]');
+  return date.isValid() && date.isBetween(lastMonth, tomorrow, 'd', '[]');
 }
 
 ////////////////////////////
