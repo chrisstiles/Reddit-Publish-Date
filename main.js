@@ -140,12 +140,8 @@
         const timestamp = postElement.querySelector('[data-click-id="timestamp"]');
 
         if (timestamp) {
-          // const element = isCommentsPage ? timestamp.previousSibling : timestamp.parentNode;
-
-          // if (element) {
-            createDateWrapper(id, timestamp);
-            getPublishedDate(id, url);
-          // }
+          createDateWrapper(id, timestamp);
+          getPublishedDate(id, url);
         }
       }
     }

@@ -1,11 +1,3 @@
-// chrome.storage.local.clear(function () {
-//   console.log('Clearing cache')
-//   var error = chrome.runtime.lastError;
-//   if (error) {
-//     console.error(error);
-//   }
-// });
-
 ////////////////////////////
 // Find date from link
 ////////////////////////////
@@ -33,8 +25,6 @@ function getDateFromPage(postId, url, tabId) {
   // it should be safe to assume it is correct
   const urlDate = getDateFromURL(url);
   if (urlDate && isRecent(urlDate)) {
-    // console.log('url date')
-    // const date = formatDate(urlDate);
     sendDateMessage(tabId, postId, urlDate)
     cachePublishDates(postId, urlDate);
     return;
@@ -48,15 +38,11 @@ function getDateFromPage(postId, url, tabId) {
     // Fallback to use the URL date if none was found in the HTML
     const date = getDateFromHTML(html, url) || urlDate;
 
-    if (!date) {
-      console.log('Not Found:')
-      console.log(url)
-      return;
-    };
-
-    // Publish date was successfully found, send to client script and cache
-    sendDateMessage(tabId, postId, date);
-    cachePublishDates(postId, date);
+    // Publish date was successfully found, send to client script and cache result
+    if (date) {
+      sendDateMessage(tabId, postId, date);
+      cachePublishDates(postId, date);
+    }
   });
 }
 
@@ -108,6 +94,30 @@ function getArticleHtml(url) {
     });
 }
 
+// Used for testing with background.js console
+function getDate(url) {
+  const urlDate = getDateFromURL(url);
+
+  if (urlDate && isRecent(urlDate)) {
+    console.log('URL date (recent):');
+    console.log(urlDate, getMomentObject(urlDate));
+  } else {
+    getArticleHtml(url).then(article => {
+      let date = getDateFromHTML(article, url);
+
+      if (date) {
+        console.log('HTML Date:');
+      } else if (urlDate) {
+        console.log('URL date (not recent):');
+        date = urlDate;
+      }
+
+      console.log(formatDate(date), getMomentObject(date));
+    });
+  }
+}
+
+
 ////////////////////////////
 // Date Parsing
 ////////////////////////////
@@ -137,11 +147,7 @@ function getDateFromHTML(html, url) {
   // We just look for JSON as it is not accurate to parse
   // HTML with regex, but is much faster than using the DOM
   publishDate = checkHTMLString(html, url);
-  if (publishDate) {
-    // console.log('Found in HTML String')
-    // console.log(publishDate);
-    return publishDate
-  };
+  if (publishDate) return publishDate;
 
   // Parse HTML document to search
   const htmlDocument = document.implementation.createHTMLDocument('parser');
@@ -158,37 +164,6 @@ function getDateFromHTML(html, url) {
   if (!publishDate) publishDate = checkSelectors(article, html);
 
   return publishDate;
-}
-
-window.getDate = function(url) {
-  const urlDate = getDateFromURL(url);
-  console.log(isRecent(urlDate))
-  if (urlDate && isRecent(urlDate)) {
-    console.log('URL Date:');
-    console.log(urlDate, getMomentObject(urlDate));
-  } else {
-    getArticleHtml(url).then(article => {
-      let date = getDateFromHTML(article, url);
-
-      if (date && urlDate) {
-        if (date.isSame(urlDate, 'day')) {
-          console.log('SAME DAY :D');
-        } else {
-          console.warn('DIFFERENT DAYS :(');
-          console.log(date, urlDate)
-        }
-      }
-
-      if (date) {
-        console.log('HTML Date:');
-      } else if (urlDate) {
-        console.log('URL Date (not recent):');
-        date = urlDate;
-      }
-
-      console.log(formatDate(date), getMomentObject(date));
-    });
-  }
 }
 
 const possibleKeys = [
@@ -288,7 +263,6 @@ function checkMetaData(article) {
     const property = meta.getAttribute('name') || meta.getAttribute('property') || meta.getAttribute('itemprop') || meta.getAttribute('http-equiv');
     
     if (property && possibleProperties.includes(property)) {
-      // console.log(property)
       const date = getMomentObject(meta.getAttribute('content'));
       if (date) return date;
     }
@@ -325,7 +299,6 @@ function checkSelectors(article, html) {
     }
   }
 
-
   for (let selector of possibleSelectors) {
     let selectorString = `[itemprop="${selector}"], .${selector}, #${selector}`;
     let elements = article.querySelectorAll(selectorString);
@@ -333,17 +306,9 @@ function checkSelectors(article, html) {
     // Loop through elements to see if one is a date
     if (elements && elements.length) {
       for (let element of elements) {
-        // console.log(element)
-        // if (!element) {
-        //   console.log(element, elements, selector)
-        //   console.log(article)
-        //   return;
-        // }
-
         let dateElement = element.querySelector('time') || element;
         let dateAttribute = dateElement.getAttribute('datetime') || dateElement.getAttribute('content');
-        // console.log(dateAttribute)
-        // console.log(dateAttribute)
+
         if (dateAttribute) {
           let date = getMomentObject(dateAttribute);
           if (date) return date;
@@ -373,7 +338,6 @@ function checkSelectors(article, html) {
   if (timeElements && timeElements.length) {
     for (let element of timeElements) {element.getAttribute('datetime') || element.getAttribute('pubdate')
       const dateString = element.getAttribute('datetime') || element.innerText;
-      // console.log(dateString)
       const date = getDateFromString(dateString);
       if (date) return date;
     }
@@ -407,6 +371,7 @@ function getDateFromString(string) {
   
   return getMomentObject(dateString);
 }
+
 
 ////////////////////////////
 // Date Helpers
@@ -444,16 +409,12 @@ function getMomentObject(dateString) {
   }
 
   // Some invalid date strings include the date without formatting
-  // var dateNumbers = dateString.match(/\d{8}/);
   const dateNumbers = parseDigitOnlyDate(dateString);
 
   if (dateNumbers) {
-    // dateNumbers = dateNumbers[0].replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
     date = moment(dateNumbers);
     if (isValid(date)) return date;
   }
-
-  // console.log('FINALLY HERE: ', dateString)
 
   // Use today's date if the string contains 'today'
   if (dateString.includes('today')) {
@@ -477,7 +438,6 @@ function getDateFromRelativeTime(num, units) {
 function parseDigitOnlyDate(dateString) {
   if (!dateString) return null;
   const matchedDate = dateString.replace(/\/|-\./g, '').match(/\b(\d{6}|\d{8})\b/);
-  console.log('here', dateString, matchedDate)
   
   let day, month, year, dayMonthArray;
 
@@ -486,14 +446,13 @@ function parseDigitOnlyDate(dateString) {
 
     if (dateString.length === 6) {
       const dateArray = dateString.replace(/(\d{2})(\d{2})(\d{2})/, '$1-$2-$3').split('-');
-      console.log('come on ', dateArray)
+
       if (Number(dateArray[0]) > 12) {
         dayMonthArray = [dateArray[1], dateArray[0]];
       } else {
         dayMonthArray = [dateArray[0], dateArray[1]];
       }
 
-      console.log('here it is: ', dayMonthArray)
       year = dateArray[2];
     } else {
       if (Number(dateString[0]) !== 2) {
@@ -514,62 +473,32 @@ function parseDigitOnlyDate(dateString) {
           dayMonthArray = [dateArray[1], dateArray[2]]
           year = dateArray[0];
         }
-
-        // if (Number(dateArray[]))
-        // if (Number(dateArray[0] > 12)) {
-        //   day = dateArray[0];
-        //   month = dateArray[1];
-        // } else {
-        //   day = dateArray[1];
-        //   month = dateArray[0];
-        // }
-
-        // const dateArray = dateString.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3').split('-');
-
-        // year = dateArray[0];
       }
     }
 
     // Date array is most likely [month, day], but try to check if possible
-    console.log(dayMonthArray)
     const possibleMonth = Number(dayMonthArray[0]);
     const possibleDay = Number(dayMonthArray[1]);
+
     if (possibleMonth === possibleDay) {
-      console.log('here 1')
       day = possibleDay;
       month = possibleMonth;
     } else if (possibleMonth > 12) {
-      console.log('here 2')
       day = possibleMonth;
       month = possibleDay;
     } else {
       // Have to guess which is month and which is date.
       // We can guess using the current month and day
-      const currentMonth = Number(moment().format('M'));
-      const currentDay = Number(moment().format('D'));
-
-      // if (possibleDay === currentDay) {
-      //   console.log('here 3')
-      //   day = possibleDay;
-      //   month = possibleMonth;
-      // } else if (possibleDay === currentMonth) {
-      //   console.log('here 4')
-      //   day = possibleMonth;
-      //   month = possibleDay;
-      // } else {
-      //   console.log('here 5')
-        // day = possibleDay;
-        // month = possibleMonth;
-      // }
-      console.log('wtf')
-      day = possibleDay;
-      month = possibleMonth;
-
+      if (currentMonth === possibleDay && currentDay === possibleMonth) {
+        day = possibleMonth;
+        month = possibleDay;
+      } else {
+        day = possibleDay;
+        month = possibleMonth;
+      }
     }
-    console.log('YAY')
-    console.log(`${month}-${day}-${year}`)
+
     return `${month}-${day}-${year}`;
-    
   }
 
   return null;
@@ -685,6 +614,7 @@ function isRecent(date) {
   return date.isValid() && date.isBetween(lastMonth, tomorrow, 'd', '[]');
 }
 
+
 ////////////////////////////
 // Caching
 ////////////////////////////
@@ -699,28 +629,10 @@ let cacheTimer;
 function cachePublishDates(postId, date) {
   if (!moment.isMoment(date)) date = getMomentObject(date);
   if (!date) return;
-  // if (isValid(date)) {
-  //   cachedDates[postId] = date.toISOString();
-  // }
-
-  // const obj = {};
 
   cache[postId] = date.toISOString();
   cacheId(postId);
   startCacheTimer();
-  
-
-  // date = date.toISOString();
-  // cache[postId] = JSON.stringify({ date, index: cachedIds.length });
-  // cache[postId] = { date, index: cachedIds.length - 1 };
-  
-  // console.log({ postId: date.toISOString() })
-  
-  // clearTimeout(cacheTimer);
-  // cacheTimer = setTimeout(() => {
-  //   const obj = { publishDates: JSON.stringify(cachedDates) };
-  //   chrome.storage.local.set(obj);
-  // }, 2000);
 }
 
 function cacheId(postId) {
@@ -758,9 +670,7 @@ function startCacheTimer() {
   clearTimeout(cacheTimer);
   cacheTimer = setTimeout(() => {
     cache.cachedIds = cachedIds;
-    // console.log(cache)
     chrome.storage.local.set(cache, () => {
-      // console.log(postId)
       const error = chrome.runtime.lastError;
       if (error) console.log(error.message)
       if (error && 
@@ -781,6 +691,7 @@ function clearOldCachedDates() {
     isClearingCache = false;
   });
 }
+
 
 ////////////////////////////
 // Extension Options
