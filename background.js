@@ -129,7 +129,7 @@ function getDateFromURL(url) {
 }
 
 function getDateFromHTML(html, url) {
-  var publishDate = null;
+  let publishDate = null;
 
   if (url.includes('youtube.com') || url.includes('youtu.be')) return getYoutubeDate(html);
 
@@ -243,7 +243,7 @@ function getYoutubeDate(html) {
 }
 
 function checkLinkedData(article, url) {
-  var linkedData = article.querySelectorAll('script[type="application/ld+json"]');
+  let linkedData = article.querySelectorAll('script[type="application/ld+json"]');
 
   if (linkedData && linkedData.length) {
     // Some sites have more than one script tag with linked data
@@ -318,7 +318,7 @@ function checkSelectors(article, html) {
   const possibleClassStrings = ['meta', 'publish'];
   const classTest = new RegExp(`(?:(?:class|id)=")([ a-zA-Z0-9_-]*(${possibleClassStrings.join('|')})[ a-zA-Z0-9_-]*)(?:"?)`, 'gim');
 
-  var classMatch;
+  let classMatch;
   while (classMatch = classTest.exec(html)) {
     if (!possibleSelectors.includes(classMatch[1])) {
       possibleSelectors.unshift(classMatch[1]);
@@ -385,11 +385,11 @@ function checkSelectors(article, html) {
 function getDateFromString(string) {
   if (!string.trim()) return null;
   
-  var date = getMomentObject(string);
+  let date = getMomentObject(string);
   if (date) return date;
 
   const numberDateTest = /\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{1,4}/;
-  var dateString = string.match(numberDateTest);
+  let dateString = string.match(numberDateTest);
   if (dateString) date = getMomentObject(dateString[0]);
   if (date) return date;
 
@@ -418,7 +418,7 @@ function getMomentObject(dateString) {
     dateString = dateString.toLowerCase();
   }
   
-  var date = moment(dateString);
+  let date = moment(dateString);
   if (isValid(date)) return date;
 
   // Try to account for strangly formatted dates
@@ -479,10 +479,10 @@ function parseDigitOnlyDate(dateString) {
   const matchedDate = dateString.replace(/\/|-\./g, '').match(/\b(\d{6}|\d{8})\b/);
   console.log('here', dateString, matchedDate)
   
-  var day, month, year, dayMonthArray;
+  let day, month, year, dayMonthArray;
 
   if (matchedDate) {
-    var dateString = matchedDate[0];
+    let dateString = matchedDate[0];
 
     if (dateString.length === 6) {
       const dateArray = dateString.replace(/(\d{2})(\d{2})(\d{2})/, '$1-$2-$3').split('-');
@@ -689,12 +689,12 @@ function isRecent(date) {
 // Caching
 ////////////////////////////
 
-var cache = {};
-var hasLoadedCachedIds = false;
-var cachedIds = [];
-var currentIds = [];
-var isClearingCache = false;
-var cacheTimer;
+let cache = {};
+let hasLoadedCachedIds = false;
+let cachedIds = [];
+let currentIds = [];
+let isClearingCache = false;
+let cacheTimer;
 
 function cachePublishDates(postId, date) {
   if (!moment.isMoment(date)) date = getMomentObject(date);

@@ -1,11 +1,11 @@
 (function() {
   const isOldReddit = document.querySelector('meta[name="jsapi"]') ? false : true;
-  var isCommentsPage = window.location.pathname.includes('comments');
+  let isCommentsPage = window.location.pathname.includes('comments');
 
   // This will be changed to be the function that updates
   // the post HTMl with the article date. The function
   // will differ based on which version of Reddit we're using
-  var updatePost;
+  let updatePost;
 
   if (isOldReddit) {
     // The old Reddit design uses traditional server-side rendering
@@ -109,10 +109,11 @@
       const { id } = e.detail.data.post;
       if (!id) return;
 
+      let wrapper = null;
       if (document.querySelector('#overlayScrollContainer')) {
-        var wrapper = document.querySelector(`#overlayScrollContainer #${id}`);
+        wrapper = document.querySelector(`#overlayScrollContainer #${id}`);
       } else {
-        var wrapper = document.querySelector(`#${id}`);
+        wrapper = document.querySelector(`#${id}`);
       }
 
       if (wrapper && !wrapper.hasAttribute('data-checked-date')) {
