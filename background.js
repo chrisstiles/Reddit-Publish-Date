@@ -63,13 +63,13 @@ function getDateFromPage(postId, url, tabId) {
 // Send date back to client script
 function sendDateMessage(tabId, postId, date) {
   const formattedDate = formatDate(date);
-  console.log(date)
+
   if (formattedDate) {
     const data = { postId, date: formattedDate };
-    const { displayType, showColors } = options;
+    const { displayType, showColors, boldText } = options;
     const cssClasses = [];
 
-    if (displayType === 'rpd-bubble') {
+    if (displayType === 'bubble') {
       cssClasses.push('rpd-bubble');
     } else {
       cssClasses.push('rpd-text');
@@ -81,6 +81,8 @@ function sendDateMessage(tabId, postId, date) {
     } else {
       cssClasses.push('rpd-no-color');
     }
+
+    if (boldText) cssClasses.push('rpd-bold');
 
     data.cssClasses = cssClasses;
 
@@ -787,23 +789,28 @@ function clearOldCachedDates() {
 const options = {
   dateType: 'relative',
   dateFormat: 'M/D/YY',
+  displayType: 'text',
   showColors: true,
-  displayType: 'text'
+  boldText: true
 };
 
-chrome.storage.sync.get(options, ({ dateType, dateFormat, showColors, displayType }) => {
+chrome.storage.sync.get(options, savedOptions => {
+  const { dateType, dateFormat, showColors, displayType, boldText } = savedOptions;
+  
   options.dateType = dateType;
   options.showColors = showColors;
   options.displayType = displayType;
+  options.boldText = boldText;
 });
 
 chrome.runtime.onMessage.addListener((request, sender) => {
-  const { type, dateType, showColors, displayType } = request;
+  const { type, dateType, showColors, displayType, boldText } = request;
 
   if (type === 'options-changed') {
     options.dateType = dateType;
     options.showColors = showColors;
     options.displayType = displayType;
+    options.boldText = boldText;
   }
 });
 

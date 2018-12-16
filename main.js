@@ -13,7 +13,7 @@
       postId = postId.replace('t3_', '');
 
       if (postElement) {
-        postElement.setAttribute('checked-date', true);
+        postElement.setAttribute('data-checked-date', true);
         const author = postElement.querySelector('.author');
 
         if (author) {
@@ -42,7 +42,7 @@
     function updateLink(link) {
       if (!link) return;
 
-      if (!link.hasAttribute('checked-date')) {
+      if (!link.hasAttribute('data-checked-date')) {
 
         if (!link.classList.contains('self')) {
           const id = link.getAttribute('data-fullname');
@@ -51,10 +51,10 @@
           if (id && shouldCheckURL(url)) {
             updatePost(id, url, link);
           } else {
-            link.setAttribute('checked-date', true);
+            link.setAttribute('data-checked-date', true);
           }
         } else {
-          link.setAttribute('checked-date', true);
+          link.setAttribute('data-checked-date', true);
         }
       }
     }
@@ -115,7 +115,7 @@
         var wrapper = document.querySelector(`#${id}`);
       }
 
-      if (wrapper && !wrapper.hasAttribute('checked-date')) {
+      if (wrapper && !wrapper.hasAttribute('data-checked-date')) {
         const link = wrapper.querySelector('a[rel="noopener noreferrer"]');
 
         if (link) {
@@ -130,11 +130,11 @@
 
     updatePost = function (id, url, postElement) {
       if (postElement) {
-        if (postElement.hasAttribute('checked-date')) {
+        if (postElement.hasAttribute('data-checked-date')) {
           return;
         }
 
-        postElement.setAttribute('checked-date', 'true');
+        postElement.setAttribute('data-checked-date', 'true');
 
         const timestamp = postElement.querySelector('[data-click-id="timestamp"]');
 

@@ -1,27 +1,31 @@
 function restoreOptions() {
   const dateTypeInput = document.querySelector('#date-type');
-  const showColorsInput = document.querySelector('#show-colors');
   const displayTypeInput = document.querySelector('#display-type');
+  const showColorsInput = document.querySelector('#show-colors');
+  const boldTextInput = document.querySelector('#bold-text');
 
   chrome.storage.sync.get({
     dateType: 'relative',
+    displayType: 'text',
     showColors: true,
-    displayType: 'text'
-  }, ({ dateType, showColors, displayType }) => {
+    boldText: true
+  }, ({ dateType, showColors, displayType, boldText }) => {
     dateTypeInput.value = dateType;
-    showColorsInput.checked = showColors;
     displayTypeInput.value = displayType;
+    showColorsInput.checked = showColors;
+    boldTextInput.checked = boldText;
   });
   
 }
 
 function saveOptions() {
   const dateType = document.querySelector('#date-type').value;
-  const showColors = document.querySelector('#show-colors').checked;
   const displayType = document.querySelector('#display-type').value;
+  const showColors = document.querySelector('#show-colors').checked;
+  const boldText = document.querySelector('#bold-text').checked;
 
-  chrome.storage.sync.set({ dateType, showColors, displayType }, () => {
-    chrome.runtime.sendMessage({ dateType, showColors, displayType, type: 'options-changed' }, () => {
+  chrome.storage.sync.set({ dateType, showColors, displayType, boldText }, () => {
+    chrome.runtime.sendMessage({ dateType, showColors, displayType, boldText, type: 'options-changed' }, () => {
       window.close();
     });
   });
