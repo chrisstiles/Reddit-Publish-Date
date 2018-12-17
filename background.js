@@ -1,4 +1,14 @@
 ////////////////////////////
+// Initialize
+////////////////////////////
+
+chrome.runtime.onInstalled.addListener(() => {
+  // Use a service worker to preloading resources from fetched pages 
+  navigator.serviceWorker.register('service-worker.js');
+});
+
+
+////////////////////////////
 // Find date from link
 ////////////////////////////
 
@@ -46,7 +56,7 @@ function getDateFromPage(postId, url, tabId) {
   });
 }
 
-// Send date back to client script
+// Send date back to client scri pt
 function sendDateMessage(tabId, postId, date) {
   const formattedDate = formatDate(date);
 
@@ -80,8 +90,9 @@ function getArticleHtml(url) {
   const headers = new Headers();
   headers.append('Content-Type', 'text/html');
   headers.append('X-XSS-Protection', '1; mode=block');
+  headers.append('Reddit-Publish-Date', 'true');
 
-  const request = new Request(url, { headers, method: 'GET', redirect: 'follow' });
+  const request = new Request(url, { headers });
 
   return fetch(request)
     .then(response => {
@@ -519,9 +530,14 @@ function formatDate(date) {
 
 function getRelativeDate(date) {
   if (date.isAfter(moment()) && isToday(date)) {
-    return 'Today';
+    return 'today';
   } else {
-    return date.fromNow();
+    const today = moment().startOf('d');
+    if (date.isSame(today, 'd')) {
+      return date.fromNow();  
+    } else {
+      return date.clone().startOf('d').from(today);
+    }
   }
 }
 
@@ -689,6 +705,15 @@ function clearOldCachedDates() {
 
   chrome.storage.local.remove(oldIds, () => {
     isClearingCache = false;
+  });
+}
+
+function clearCache() {
+  chrome.storage.local.clear(function () {
+    let error = chrome.runtime.lastError;
+    if (error) {
+      console.error(error);
+    }
   });
 }
 
