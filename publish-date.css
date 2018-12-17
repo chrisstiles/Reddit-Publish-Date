@@ -133,3 +133,7 @@
   z-index: 1;
   border-radius:2px;
 }
+
+#siteTable .rpd-publish-date.rpd-bubble.rpd-date:before {
+  bottom:0;
+}

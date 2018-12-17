@@ -62,7 +62,7 @@ function sendDateMessage(tabId, postId, date) {
 
   if (formattedDate) {
     const data = { postId, date: formattedDate };
-    const { displayType, showColors, boldText } = options;
+    const { displayType, dateType, showColors, boldText } = options;
     const cssClasses = [];
 
     if (displayType === 'bubble') {
@@ -79,6 +79,12 @@ function sendDateMessage(tabId, postId, date) {
     }
 
     if (boldText) cssClasses.push('rpd-bold');
+
+    if (dateType === 'relative') {
+      cssClasses.push('rpd-relative');
+    } else {
+      cssClasses.push('rpd-date');
+    }
 
     data.cssClasses = cssClasses;
 
