@@ -109,9 +109,18 @@ input[type="text"]:focus {
   position:relative;
   text-align: left;
   cursor: pointer;
-  display:inline-block;
+  float:left;
   margin-right:20px;
   user-select: none;
+}
+
+.checkbox .info {
+  font-size: 13px;
+  margin-left: 3px;
+  font-weight: 500;
+  color: #888888;
+  position: relative;
+  top: -1px;
 }
 
 .checkbox:last-child {
@@ -157,12 +166,18 @@ input[type="text"]:focus {
   border-right-style: none;
 }
 
+#bold-text-wrapper {
+  margin-left:20px;
+  margin-top:9px;
+}
+
 
 /*-----------------------*/
 /* Option Buttons */
 
 .button-group {
   display:inline-flex;
+  float:left;
   flex-direction:row;
   color:#575757;
   font-weight: 500;
@@ -325,6 +340,9 @@ input[type="text"]:focus {
   font-size: 13px;
   padding: 5px;
   border-bottom:1px solid #ececec;
+  margin-bottom:0;
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.04);
+  position: relative;
 }
 
 #preview-window {
