@@ -746,10 +746,11 @@ chrome.storage.sync.get(options, savedOptions => {
 });
 
 chrome.runtime.onMessage.addListener((request, sender) => {
-  const { type, dateType, showColors, displayType, boldText } = request;
+  const { type, dateType, showColors, displayType, boldText, dateFormat } = request;
 
   if (type === 'options-changed') {
     options.dateType = dateType;
+    options.dateFormat = dateFormat;
     options.showColors = showColors;
     options.displayType = displayType;
     options.boldText = boldText;

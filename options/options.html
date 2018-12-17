@@ -3,32 +3,168 @@
 
 <head>
   <title>My Test Extension Options</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700,900" rel="stylesheet">
   <link href="options.css" rel="stylesheet" type="text/css">
 </head>
 
 <body>
 
-  <label for="date-type">Date Type</label>
-  <select id="date-type">
-    <option value="date">Date</option>
-    <option value="relative">Relative Time</option>
-  </select>
+  <!-- User Input -->
+  <div class="input-wrapper">
+    <!-- Left Options -->
+    <div class="left">
+      <!-- Date Type -->
+      <div class="option-wrapper">
+        <div class="label-wrapper">
+          <label>Date Type</label>
+          <p>Display either the publication date or the amount of time from then until now.</p>
+        </div>
+    
+        <div id="date-type" class="button-group has-info-text" data-name="dateType">
+          <div class="button-option" data-value="date">
+            <span class="small">Date</span>
+            <span class="date-text">12/13/18</span>
+          </div>
+          <div class="button-option" data-value="relative">
+            <span class="small">Relative</span>
+            <span class="relative-text">3 days ago</span>
+          </div>
+        </div>
+      </div>
+      <!-- End Date Type -->
 
-  <label for="display-type">Display Type</label>
-  <select id="display-type">
-    <option value="text">Text</option>
-    <option value="bubble">Bubble</option>
-  </select>
+      <!-- Display Type -->
+      <div class="option-wrapper">
+        <div class="label-wrapper">
+          <label>Display type</label>
+          <p>Display the date as plain text or inside a bubble.</p>
+        </div>
+      
+        <div id="display-type" class="button-group" data-name="displayType">
+          <div class="button-option" data-value="text">
+            Text
+          </div>
+          <div class="button-option" data-value="bubble">
+            Bubble
+          </div>
+        </div>
+      </div>
+      <!-- End Display Type -->
 
-  <label for="show-colors">Show colors</label>
-  <input type="checkbox" id="show-colors" name="Show Colors">
+      <div class="text-options">
+        <!-- Show Colors -->
+        <div class="checkbox">
+          <input id="show-colors" type="checkbox" data-name="showColors">
+          <label for="show-colors">Show colors</label>
+        </div>
+        <!-- End Show Colors -->
+        
+        <!-- Bold Text -->
+        <div class="checkbox">
+          <input id="bold-text" type="checkbox" data-name="boldText">
+          <label for="bold-text">Bold text</label>
+        </div>
+        <!-- End Bold Text -->
+      </div>
+
+      <!-- Preview -->
+      <div id="preview-wrapper">
+        <label>Preview</label>
+        <div id="preview-window">
+          <div id="preview">
+            <span>Published <span id="preview-date">12/13/16</span></span>
+          </div>
+        </div>
+      </div>
+      <!-- End Preview -->
+      
+    </div>
+    <!-- End Left Options -->
+    
+    <!-- Right Options -->
+    <div class="right">
+      <!-- Date Format -->
+      <div id="date-format-wrapper" class="option-wrapper">
+        <div class="label-wrapper">
+          <label>Date format</label>
+          <p>Use the list of tokens to choose how the date is formatted.</p>
+        </div>
+
+        <div class="clear">
+          <input type="text" id="date-format" spellcheck="false" autocomplete="off" maxLength="30" />
+          <div id="reset-format" class="button button-reset">Reset</div>
+        </div>
+
+        <!-- Format Options -->
+        <div class="format-options">
+          <div class="heading">
+            <div class="token">Token</div>
+            <div class="example">Example</div>
+            <div class="description">Description</div>
+          </div>
+      
+          <div class="item">
+            <div class="token"><span class="highlight">YYYY</span></div>
+            <div class="example"><span class="highlight">2018</span></div>
+            <div class="description">Year <span>(full)</span></div>
+          </div>
+      
+          <div class="item">
+            <div class="token"><span class="highlight">YY</span></div>
+            <div class="example"><span class="highlight">18</span></div>
+            <div class="description">Year <span>(short)</span></div>
+          </div>
+      
+          <div class="item">
+            <div class="token"><span class="highlight">MMMM</span></div>
+            <div class="example"><span class="highlight">December</span></div>
+            <div class="description">Month <span>(full)</span></div>
+          </div>
+      
+          <div class="item">
+            <div class="token"><span class="highlight">MMM</span></div>
+            <div class="example"><span class="highlight">Dec</span></div>
+            <div class="description">Month <span>(short)</span></div>
+          </div>
+
+          <div class="item">
+            <div class="token"><span class="highlight">M</span></div>
+            <div class="example"><span class="highlight">12</span></div>
+            <div class="description">Month <span>(number)</span></div>
+          </div>
+
+          <div class="item">
+            <div class="token"><span class="highlight">D</span></div>
+            <div class="example"><span class="highlight">16</span></div>
+            <div class="description">Month <span>(number)</span></div>
+          </div>
+
+          <div class="item">
+            <div class="token"><span class="highlight">dddd</span></div>
+            <div class="example"><span class="highlight">Sunday</span></div>
+            <div class="description">Weekday <span>(full)</span></div>
+          </div>
+
+          <div class="item">
+            <div class="token"><span class="highlight">ddd</span></div>
+            <div class="example"><span class="highlight">Sun</span></div>
+            <div class="description">Weekday <span>(short)</span></div>
+          </div>
+        </div>
+        <!-- End Format Options -->
+      </div>
+      <!-- End Date Format -->
+    </div>
+    <!-- End Right Options -->
   
-  <label for="bold-text">Bold Text</label>
-  <input type="checkbox" id="bold-text" name="Bold Text">
+  </div>
+  <!-- End User Input -->
 
-  <br><br>
-  <button id="save">Save Options</button>
+  <div id="save-wrapper">
+    <div id="save" class="button">Save Options</div>
+  </div>
 
+  <script src="../moment.js"></script>
   <script src="options.js"></script>
 </body>
 

@@ -113,9 +113,21 @@
 /* Bubble Dates */
 
 .rpd-publish-date.rpd-bubble {
-  color:#fff !important;
   padding:0 3px;
   margin-left:2px;
+}
+
+.rpd-publish-date.rpd-bubble.rpd-color {
+  color:#fff !important;
+}
+
+.rpd-publish-date.rpd-bubble.rpd-no-color {
+  color:#5a5a5a !important;
+}
+
+.rpd-publish-date.rpd-bubble.rpd-no-color:before {
+  background-color: #f9f9f9;
+  box-shadow: 0px 0px 0px 1.8px rgba(179, 179, 179, 0.23);
 }
 
 #siteTable .rpd-publish-date.rpd-bubble {
