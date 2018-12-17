@@ -184,8 +184,8 @@ function getDateFromHTML(html, url) {
 }
 
 const possibleKeys = [
-  'datePublished', 'dateCreated', 'publishDate', 'published', 'uploadDate', 'publishedDate', 
-  'articleChangeDateShort', 'post_date', 'dateText', 'date'
+  'datePublished', 'dateCreated', 'publishDate', 'published', 'publishedDate', 
+  'articleChangeDateShort', 'post_date', 'dateText', 'date', 'uploadDate'
 ];
 const months = [
   'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
@@ -203,11 +203,25 @@ function checkHTMLString(html, url) {
     if (url.includes(domain)) return null;
   }
 
-  const dateTest = new RegExp(`(?:${possibleKeys.join('|')})(?:'|")?\\s?:\\s?(?:'|")([a-zA-Z0-9_.\\-:+, ]*)(?:'|")`, 'i');
-  const dateString = html.match(dateTest);
+  const dateTest = new RegExp(`(?:${possibleKeys.join('|')})(?:'|")?\\s?:\\s?(?:'|")([a-zA-Z0-9_.\\-:+, ]*)(?:'|")`, 'ig');
+  let dateArray = html.match(dateTest);
 
-  if (dateString && dateString[1]) {
-    return getMomentObject(dateString[1]);
+  if (dateArray && dateArray.length) {
+    let dateString = dateArray[1];
+
+    // Prefer publish date over other meta data dates
+    for (let date of dateArray) {
+      if (date.toLowerCase().includes('publish')) {
+        dateString = date;
+        break;
+      }
+    }
+
+    dateArray = dateString.match(/(?:["'] ?: ?["'])([ :.a-zA-Z0-9_-]*)(?:["'])/);
+
+    if (dateArray && dateArray[1]) {
+      return getMomentObject(dateArray[1]);
+    }
   }
 
   return null;
@@ -217,7 +231,7 @@ function getYoutubeDate(html) {
   if (!html) return null;
 
   const dateTest = new RegExp(`(?:["']ytInitialData[",']][.\\s\\S]*dateText["'].*)((?:${months.join('|')}) \\d{1,2}, \\d{4})(?:['"])`, 'i');
-  const dateArray = html.match(dateTest, 'i');
+  const dateArray = html.match(dateTest);
 
   if (dateArray && dateArray[1]) {
     return getMomentObject(dateArray[1]);
