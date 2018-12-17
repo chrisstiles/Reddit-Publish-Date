@@ -87,7 +87,10 @@ function setDateFormatInput(format) {
 }
 
 document.querySelector('#reset-format').addEventListener('click', () => {
-  setDateFormatInput('M/D/YY');
+  const defaultFormat = 'M/D/YY';
+  options.dateFormat = defaultFormat;
+  setDateFormatInput(defaultFormat);
+  updatePreview();
 });
 
 document.querySelector('#date-format').addEventListener('input', e => {
