@@ -51,7 +51,7 @@ body {
 }
 
 label {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
   color: #4a4a4a;
   letter-spacing: .01em;
@@ -62,8 +62,8 @@ label {
 p {
   margin-top: 0;
   font-size: 13px;
-  font-weight: 400;
-  color: #757575;
+  font-weight: 500;
+  color: #888888;
   line-height: 1.3em;
   margin-bottom:15px;
 }
@@ -109,7 +109,6 @@ input[type="text"]:focus {
   position:relative;
   text-align: left;
   cursor: pointer;
-  float:left;
   margin-right:20px;
   user-select: none;
 }
@@ -121,6 +120,11 @@ input[type="text"]:focus {
   color: #888888;
   position: relative;
   top: -1px;
+}
+
+.checkbox p.info {
+  margin-left: 27px;
+  top: 0;
 }
 
 .checkbox:last-child {
@@ -169,6 +173,7 @@ input[type="text"]:focus {
 #bold-text-wrapper {
   margin-left:20px;
   margin-top:9px;
+  float:left;
 }
 
 

@@ -58,6 +58,9 @@
       ]
     }
   ],
+  "page_action": {
+    "default_title": "Reddit Publish Date"
+  },
   "web_accessible_resources": [
     "main.js",
     "format-date.js",

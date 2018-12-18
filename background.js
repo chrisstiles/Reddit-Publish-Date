@@ -5,34 +5,7 @@
 chrome.runtime.onInstalled.addListener(() => {
   // Use a service worker to preloading resources from fetched pages 
   navigator.serviceWorker.register('service-worker.js');
-
-  chrome.declarativeContent.onPageChanged.removeRules(undefined, () => {
-    chrome.declarativeContent.onPageChanged.addRules([{
-      conditions: [
-        new chrome.declarativeContent.PageStateMatcher({
-          pageUrl: { hostSuffix: 'reddit.com' },
-        })
-      ],
-      actions: [new chrome.declarativeContent.ShowPageAction()]
-    }]);
-  });
 });
-
-// chrome.tabs.onActivated.addListener(({ tabId }) => {
-//   chrome.pageAction.show(tabId);
-// });
-
-chrome.pageAction.onClicked.addListener(tab => {
-  chrome.tabs.sendMessage(tab.id, { type: 'check-links' });
-});
-
-// chrome.browserAction.onClicked.addListener(function (tab) {
-//   // No tabs or host permissions needed!
-//   console.log('Turning ' + tab.url + ' red!');
-//   chrome.tabs.executeScript({
-//     code: 'document.body.style.backgroundColor="red"'
-//   });
-// });
 
 
 ////////////////////////////
