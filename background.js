@@ -3,6 +3,7 @@
 ////////////////////////////
 
 chrome.runtime.onInstalled.addListener(() => {
+  clearCache();
   // Use a service worker to preloading resources from fetched pages 
   navigator.serviceWorker.register('service-worker.js');
 });
@@ -163,6 +164,7 @@ function getDateFromHTML(html, url) {
   // Try searching from just the HTML string with regex
   // We just look for JSON as it is not accurate to parse
   // HTML with regex, but is much faster than using the DOM
+  // console.log('checkHTMLString()')
   publishDate = checkHTMLString(html, url);
   if (publishDate) return publishDate;
 
@@ -172,12 +174,15 @@ function getDateFromHTML(html, url) {
   article.innerHTML = html;
   
   // Some websites include linked data with information about the article
+  // console.log('checkLinkedData()')
   publishDate = checkLinkedData(article, url);
 
   // Next try searching <meta> tags
+  // console.log('checkMetaData()')
   if (!publishDate) publishDate = checkMetaData(article);
 
   // Try checking item props and CSS selectors
+  // console.log('checkSelectors()')
   if (!publishDate) publishDate = checkSelectors(article, html);
 
   return publishDate;
@@ -185,7 +190,7 @@ function getDateFromHTML(html, url) {
 
 const possibleKeys = [
   'datePublished', 'dateCreated', 'publishDate', 'published', 'publishedDate', 
-  'articleChangeDateShort', 'post_date', 'dateText', 'date', 'uploadDate'
+  'articleChangeDateShort', 'post_date', 'dateText', 'date', 'uploadDate', 'publishedDateISO8601'
 ];
 const months = [
   'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
@@ -203,7 +208,7 @@ function checkHTMLString(html, url) {
     if (url.includes(domain)) return null;
   }
 
-  const dateTest = new RegExp(`(?:${possibleKeys.join('|')})(?:'|")?\\s?:\\s?(?:'|")([a-zA-Z0-9_.\\-:+, ]*)(?:'|")`, 'ig');
+  const dateTest = new RegExp(`(?:'|")(?:${possibleKeys.join('|')})(?:'|")?\\s?:\\s?(?:'|")([a-zA-Z0-9_.\\-:+, ]*)(?:'|")`, 'ig');
   let dateArray = html.match(dateTest);
 
   if (dateArray && dateArray.length) {
@@ -217,10 +222,12 @@ function checkHTMLString(html, url) {
       }
     }
 
-    dateArray = dateString.match(/(?:["'] ?: ?["'])([ :.a-zA-Z0-9_-]*)(?:["'])/);
+    if (dateString) {
+      dateArray = dateString.match(/(?:["'] ?: ?["'])([ :.a-zA-Z0-9_-]*)(?:["'])/);
 
-    if (dateArray && dateArray[1]) {
-      return getMomentObject(dateArray[1]);
+      if (dateArray && dateArray[1]) {
+        return getMomentObject(dateArray[1]);
+      }
     }
   }
 
@@ -410,9 +417,6 @@ function getDateFromString(string) {
 
 function getMomentObject(dateString) {
   if (!dateString) return null;
-  if (typeof dateString === 'string') {
-    dateString = dateString.toLowerCase();
-  }
   
   let date = moment(dateString);
   if (isValid(date)) return date;
@@ -421,14 +425,14 @@ function getMomentObject(dateString) {
   const timezones = ['est', 'cst', 'mst', 'pst', 'edt', 'cdt', 'mdt', 'pdt'];
 
   for (let timezone of timezones) {
-    if (dateString.includes(timezone)) {
+    if (dateString.toLowerCase().includes(timezone)) {
       date = moment(dateString.substring(0, dateString.indexOf(timezone)));
       if (isValid(date)) return date;
     }
   }
 
   for (let month of months) {
-    if (dateString.includes(month)) {
+    if (dateString.toLowerCase().includes(month)) {
       const monthSearch = new RegExp(`(\\d{1,4} )?${month}`);
       const startIndex = dateString.search(monthSearch)
       const yearIndex = dateString.search(/\d{4}/);
