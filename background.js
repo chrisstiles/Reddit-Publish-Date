@@ -3,10 +3,36 @@
 ////////////////////////////
 
 chrome.runtime.onInstalled.addListener(() => {
-  clearCache();
   // Use a service worker to preloading resources from fetched pages 
   navigator.serviceWorker.register('service-worker.js');
+
+  chrome.declarativeContent.onPageChanged.removeRules(undefined, () => {
+    chrome.declarativeContent.onPageChanged.addRules([{
+      conditions: [
+        new chrome.declarativeContent.PageStateMatcher({
+          pageUrl: { hostSuffix: 'reddit.com' },
+        })
+      ],
+      actions: [new chrome.declarativeContent.ShowPageAction()]
+    }]);
+  });
 });
+
+// chrome.tabs.onActivated.addListener(({ tabId }) => {
+//   chrome.pageAction.show(tabId);
+// });
+
+chrome.pageAction.onClicked.addListener(tab => {
+  chrome.tabs.sendMessage(tab.id, { type: 'check-links' });
+});
+
+// chrome.browserAction.onClicked.addListener(function (tab) {
+//   // No tabs or host permissions needed!
+//   console.log('Turning ' + tab.url + ' red!');
+//   chrome.tabs.executeScript({
+//     code: 'document.body.style.backgroundColor="red"'
+//   });
+// });
 
 
 ////////////////////////////
@@ -118,7 +144,7 @@ function getDate(url) {
 
   if (urlDate && isRecent(urlDate)) {
     console.log('URL date (recent):');
-    console.log(urlDate, getMomentObject(urlDate));
+    console.log(formatDate(urlDate), getMomentObject(urlDate));
   } else {
     getArticleHtml(url).then(article => {
       let date = getDateFromHTML(article, url);
@@ -164,7 +190,7 @@ function getDateFromHTML(html, url) {
   // Try searching from just the HTML string with regex
   // We just look for JSON as it is not accurate to parse
   // HTML with regex, but is much faster than using the DOM
-  // console.log('checkHTMLString()')
+  console.log('checkHTMLString()')
   publishDate = checkHTMLString(html, url);
   if (publishDate) return publishDate;
 
@@ -174,15 +200,15 @@ function getDateFromHTML(html, url) {
   article.innerHTML = html;
   
   // Some websites include linked data with information about the article
-  // console.log('checkLinkedData()')
+  console.log('checkLinkedData()')
   publishDate = checkLinkedData(article, url);
 
   // Next try searching <meta> tags
-  // console.log('checkMetaData()')
+  console.log('checkMetaData()')
   if (!publishDate) publishDate = checkMetaData(article);
 
   // Try checking item props and CSS selectors
-  // console.log('checkSelectors()')
+  console.log('checkSelectors()')
   if (!publishDate) publishDate = checkSelectors(article, html);
 
   return publishDate;
@@ -322,7 +348,7 @@ function checkSelectors(article, html) {
     'Article__Date', 'pb-timestamp', 'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 
     'Timestamp-time', 'report-writer-date', 'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 
     'blog-post-meta', 'timeinfo-txt', 'field-name-post-date', 'post--meta', 'article-dateline', 'storydate', 
-    'content-head', 'news_date', 'tk-soleil', 'entry-content'
+    'content-head', 'news_date', 'tk-soleil', 'entry-content', 'cmTimeStamp', 'meta p:first-child'
   ];
 
   // Since we can't account for every possible selector a site will use,
@@ -348,15 +374,29 @@ function checkSelectors(article, html) {
         let dateAttribute = dateElement.getAttribute('datetime') || dateElement.getAttribute('content');
 
         if (dateAttribute) {
-          let date = getMomentObject(dateAttribute);
+          const date = getMomentObject(dateAttribute);
           if (date) return date;
         }
 
+
+
+        element.innerHTML = stripScripts(element.innerHTML)
         const dateString = element.innerText || element.getAttribute('value');
-        let date = getDateFromString(dateString);
+        const date = getDateFromString(dateString);
         if (date) return date;
       }
     }
+  }
+
+  function stripScripts(html) {
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    var scripts = div.getElementsByTagName('script');
+    var i = scripts.length;
+    while (i--) {
+      scripts[i].parentNode.removeChild(scripts[i]);
+    }
+    return div.innerHTML;
   }
 
   // Check more generic selectors that could be used for other dates
@@ -404,10 +444,14 @@ function getDateFromString(string) {
     .replace(/at|on|,/g, '')
     .replace(/(\d{4}).*/, '$1')
     .replace(/([0-9]st|nd|th)/g, '')
+    .replace(/posted:*/i, '')
     .replace(/.*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i, '')
     .trim();
   
-  return getMomentObject(dateString);
+  date = getMomentObject(dateString);
+  if (date) return date;
+
+  return null; 
 }
 
 
@@ -554,13 +598,20 @@ function formatDate(date) {
 
 function getRelativeDate(date) {
   if (date.isAfter(moment()) && isToday(date)) {
+    console.log('here')
     return 'today';
   } else {
-    const today = moment().startOf('d');
+    const today = moment();
     if (date.isSame(today, 'd')) {
+      console.log('here')
       return date.fromNow();  
     } else {
-      return date.clone().startOf('d').from(today);
+      console.log('here')
+      if (date.isAfter(today)) {
+        return 'today';
+      } else {
+        return date.clone().startOf('d').from(today.startOf('d'));
+      }
     }
   }
 }
@@ -569,12 +620,9 @@ function getColorClass(_date) {
   const date = moment(_date);
   if (!isValid(date)) return 'invalid';
   
-  const today = moment();
-  if (date.isAfter(today, 'd')) {
-    return 'future';
-  }
-
-  today.startOf('d');
+  const today = moment().startOf('d');
+  
+  // today.startOf('d');
 
   // Today or yesterday
   const yesterday = today.clone().subtract(1, 'd').startOf('d');
@@ -622,6 +670,11 @@ function getColorClass(_date) {
   if (date.isBefore(oneYearAgo, 'd')) {
     return 'rpd-8';
   };
+
+  // Future date
+  if (date.isAfter(today, 'd')) {
+    return 'rpd-future';
+  }
 
   return 'rpd-invalid';
 }
