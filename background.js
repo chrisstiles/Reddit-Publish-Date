@@ -3,6 +3,7 @@
 ////////////////////////////
 
 chrome.runtime.onInstalled.addListener(() => {
+  clearCache();
   // Use a service worker to preloading resources from fetched pages 
   navigator.serviceWorker.register('service-worker.js');
 });
@@ -31,20 +32,26 @@ chrome.runtime.onMessage.addListener((request, sender) => {
 
 function getDateFromPage(postId, url, tabId) {
   getArticleHtml(url).then(html => {
-    if (!html && !urlDate) return;
+    if (!html) return;
     const date = getDateFromHTML(html, url);
 
     // Publish date was successfully found, send to client script and cache result
     if (date) {
-      sendDateMessage(tabId, postId, date);
+      sendDateMessage(tabId, postId, date, url);
       cachePublishDates(postId, date);
     }
   });
 }
 
 // Send date back to client scri pt
-function sendDateMessage(tabId, postId, date) {
+function sendDateMessage(tabId, postId, date, url) {
   const formattedDate = formatDate(date);
+  // console.log(date)
+  if (moment(date).isBefore(moment().subtract(10, 'd'))) {
+    console.log(url)
+    console.log(date)
+    console.log(formattedDate)
+  }
 
   if (formattedDate) {
     const data = { postId, date: formattedDate };
@@ -139,17 +146,14 @@ function getDateFromHTML(html, url) {
   // Try searching from just the HTML string with regex
   // We just look for JSON as it is not accurate to parse
   // HTML with regex, but is much faster than using the DOM
-  console.log('checkHTMLString()')
+  // console.log('checkHTMLString()')
   publishDate = checkHTMLString(html, url);
   if (publishDate) return publishDate;
 
   // Attempt to get date from URL, we do this after
   // checking the HTML string because it can be
   const urlDate = getDateFromURL(url);
-  if (urlDate && isRecent(urlDate)) {
-    console.log('URL Date', urlDate)
-    return urlDate
-  }
+  if (urlDate && isRecent(urlDate)) return urlDate;
 
   // Parse HTML document to search
   const htmlDocument = document.implementation.createHTMLDocument('parser');
@@ -157,15 +161,15 @@ function getDateFromHTML(html, url) {
   article.innerHTML = html;
   
   // Some websites include linked data with information about the article
-  console.log('checkLinkedData()')
+  // console.log('checkLinkedData()')
   publishDate = checkLinkedData(article, url);
 
   // Next try searching <meta> tags
-  console.log('checkMetaData()')
+  // console.log('checkMetaData()')
   if (!publishDate) publishDate = checkMetaData(article);
 
   // Try checking item props and CSS selectors
-  console.log('checkSelectors()')
+  // console.log('checkSelectors()')
   if (!publishDate) publishDate = checkSelectors(article, html);
 
   if (publishDate) return publishDate;
@@ -176,7 +180,7 @@ function getDateFromHTML(html, url) {
 
 const possibleKeys = [
   'datePublished', 'dateCreated', 'publishDate', 'published', 'publishedDate',
-  'articleChangeDateShort', 'post_date', 'dateText', 'date', 'uploadDate', 'publishedDateISO8601'
+  'articleChangeDateShort', 'post_date', 'dateText', 'date', 'publishedDateISO8601'
 ];
 const months = [
   'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
@@ -194,7 +198,7 @@ function checkHTMLString(html, url) {
     if (url.includes(domain)) return null;
   }
   
-  const regexString = `(?:(?:'|")?(?:${possibleKeys.join('|')})(?:'|")?: ?(?:'|"))([a-zA-Z0-9_.\\-:+, ]*)(?:'|")`;
+  const regexString = `(?:(?:'|"|'b)(?:${possibleKeys.join('|')})(?:'|")?: ?(?:'|"))([a-zA-Z0-9_.\\-:+, ]*)(?:'|")`;
 
   // First try with global 
   let dateTest = new RegExp(regexString, 'ig');
@@ -318,7 +322,7 @@ function checkMetaData(article) {
 function checkSelectors(article, html) {
   const possibleSelectors = [
     'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post-date', 'post__date', 'article-date', 'article_date', 
-    'Article__Date', 'pb-timestamp', 'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 
+    'Article__Date', 'pb-timestamp', 'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'article-info',
     'Timestamp-time', 'report-writer-date', 'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 
     'blog-post-meta', 'timeinfo-txt', 'field-name-post-date', 'post--meta', 'article-dateline', 'storydate', 
     'content-head', 'news_date', 'tk-soleil', 'entry-content', 'cmTimeStamp', 'meta p:first-child'
@@ -489,71 +493,75 @@ function getDateFromRelativeTime(num, units) {
 
 function parseDigitOnlyDate(dateString) {
   if (!dateString) return null;
-  const matchedDate = dateString.replace(/\/|-\./g, '').match(/\b(\d{6}|\d{8})\b/);
+  let matchedDate = dateString.replace(/\/|-\./g, '').match(/\b(\d{6}|\d{8})\b/);
+  
+  if (!matchedDate) {
+    matchedDate = dateString.match(/\d{8}/);
+    if (!matchedDate) {
+      return null;
+    } else {
+      return matchedDate[0];
+    }
+  }
   
   let day, month, year, dayMonthArray;
+  dateString = matchedDate[0];
 
-  if (matchedDate) {
-    let dateString = matchedDate[0];
+  if (dateString.length === 6) {
+    const dateArray = dateString.replace(/(\d{2})(\d{2})(\d{2})/, '$1-$2-$3').split('-');
 
-    if (dateString.length === 6) {
-      const dateArray = dateString.replace(/(\d{2})(\d{2})(\d{2})/, '$1-$2-$3').split('-');
-
-      if (Number(dateArray[0]) > 12) {
-        dayMonthArray = [dateArray[1], dateArray[0]];
-      } else {
-        dayMonthArray = [dateArray[0], dateArray[1]];
-      }
-
-      year = dateArray[2];
+    if (Number(dateArray[0]) > 12) {
+      dayMonthArray = [dateArray[1], dateArray[0]];
     } else {
-      if (Number(dateString[0]) !== 2) {
-        const dateArray = dateString.replace(/(\d{2})(\d{2})(\d{4})/, '$1-$2-$3').split('-');
-        if (dateArray) {
-          if (Number(dateArray[0]) > 12) {
-            dayMonthArray = [dateArray[1], dateArray[0]];
-          } else {
-            dayMonthArray = [dateArray[0], dateArray[1]];
-          }
-          
-          year = dateArray[2];
-        }
-        
-      } else {
-        const dateArray = dateString.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3').split('-');
-        if (dateArray) {
-          dayMonthArray = [dateArray[1], dateArray[2]]
-          year = dateArray[0];
-        }
-      }
+      dayMonthArray = [dateArray[0], dateArray[1]];
     }
 
-    // Date array is most likely [month, day], but try to check if possible
-    const possibleMonth = Number(dayMonthArray[0]);
-    const possibleDay = Number(dayMonthArray[1]);
+    year = dateArray[2];
+  } else {
+    if (Number(dateString[0]) !== 2) {
+      const dateArray = dateString.replace(/(\d{2})(\d{2})(\d{4})/, '$1-$2-$3').split('-');
+      if (dateArray) {
+        if (Number(dateArray[0]) > 12) {
+          dayMonthArray = [dateArray[1], dateArray[0]];
+        } else {
+          dayMonthArray = [dateArray[0], dateArray[1]];
+        }
 
-    if (possibleMonth === possibleDay) {
-      day = possibleDay;
-      month = possibleMonth;
-    } else if (possibleMonth > 12) {
+        year = dateArray[2];
+      }
+
+    } else {
+      const dateArray = dateString.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3').split('-');
+      if (dateArray) {
+        dayMonthArray = [dateArray[1], dateArray[2]]
+        year = dateArray[0];
+      }
+    }
+  }
+
+  // Date array is most likely [month, day], but try to check if possible
+  const possibleMonth = Number(dayMonthArray[0]);
+  const possibleDay = Number(dayMonthArray[1]);
+
+  if (possibleMonth === possibleDay) {
+    day = possibleDay;
+    month = possibleMonth;
+  } else if (possibleMonth > 12) {
+    day = possibleMonth;
+    month = possibleDay;
+  } else {
+    // Have to guess which is month and which is date.
+    // We can guess using the current month and day
+    if (currentMonth === possibleDay && currentDay === possibleMonth) {
       day = possibleMonth;
       month = possibleDay;
     } else {
-      // Have to guess which is month and which is date.
-      // We can guess using the current month and day
-      if (currentMonth === possibleDay && currentDay === possibleMonth) {
-        day = possibleMonth;
-        month = possibleDay;
-      } else {
-        day = possibleDay;
-        month = possibleMonth;
-      }
+      day = possibleDay;
+      month = possibleMonth;
     }
-
-    return `${month}-${day}-${year}`;
   }
 
-  return null;
+  return `${month}-${day}-${year}`;
 }
 
 function formatDate(date) {
@@ -573,18 +581,6 @@ function getRelativeDate(date) {
   const startOfPublishDate = date.clone().startOf('d')
   const today = moment();
   const yesterday = moment().subtract(1, 'd').startOf('d');
-
-  // if ((date.isAfter(today) && isToday(date)) || date.isSame(today, 'd')) {
-  //   console.log('here')
-  //   return 'today';
-  // } else {
-  //   const yesterday = moment().subtract(1, 'd');
-  //   if (date.isAfter(today)) {
-  //     return 'today';
-  //   } else {
-  //     return date.clone().startOf('d').from(today.startOf('d'));
-  //   }
-  // }
 
   if (date.isSameOrAfter(today, 'd')) {
     return 'today';
@@ -663,8 +659,9 @@ function isValid(date) {
 
   // Check if the date is on or before tomorrow to account for time zone differences
   const tomorrow = moment().add(1, 'd');
+  const longAgo = moment().subtract(20, 'y');
 
-  return date.isValid() && date.isSameOrBefore(tomorrow, 'd');
+  return date.isValid() && date.isSameOrBefore(tomorrow, 'd') && date.isSameOrAfter(longAgo);
 }
 
 function isToday(date) {
