@@ -33,20 +33,18 @@ function getDateFromPage(postId, url, tabId) {
   // First we try to parse the date from the URL.
   // If it exists and it is within a month
   // it should be safe to assume it is correct
-  const urlDate = getDateFromURL(url);
-  if (urlDate && isRecent(urlDate)) {
-    sendDateMessage(tabId, postId, urlDate)
-    cachePublishDates(postId, urlDate);
-    return;
-  }
+  // const urlDate = getDateFromURL(url);
+  // if (urlDate && isRecent(urlDate)) {
+  //   sendDateMessage(tabId, postId, urlDate)
+  //   cachePublishDates(postId, urlDate);
+  //   return;
+  // }
 
   // Finally we download the webpage HTML to
   // try and parse the date from there
   getArticleHtml(url).then(html => {
     if (!html && !urlDate) return;
-
-    // Fallback to use the URL date if none was found in the HTML
-    const date = getDateFromHTML(html, url) || urlDate;
+    const date = getDateFromHTML(html, url);
 
     // Publish date was successfully found, send to client script and cache result
     if (date) {
@@ -113,25 +111,15 @@ function getArticleHtml(url) {
 
 // Used for testing with background.js console
 function getDate(url) {
-  const urlDate = getDateFromURL(url);
+  getArticleHtml(url).then(article => {
+    let date = getDateFromHTML(article, url);
 
-  if (urlDate && isRecent(urlDate)) {
-    console.log('URL date (recent):');
-    console.log(formatDate(urlDate), getMomentObject(urlDate));
-  } else {
-    getArticleHtml(url).then(article => {
-      let date = getDateFromHTML(article, url);
+    if (date) {
+      console.log('HTML Date:');
+    }
 
-      if (date) {
-        console.log('HTML Date:');
-      } else if (urlDate) {
-        console.log('URL date (not recent):');
-        date = urlDate;
-      }
-
-      console.log(formatDate(date), getMomentObject(date));
-    });
-  }
+    console.log(formatDate(date), getMomentObject(date));
+  });
 }
 
 
@@ -167,6 +155,14 @@ function getDateFromHTML(html, url) {
   publishDate = checkHTMLString(html, url);
   if (publishDate) return publishDate;
 
+  // Attempt to get date from URL, we do this after
+  // checking the HTML string because it can be
+  const urlDate = getDateFromURL(url);
+  if (urlDate && isRecent(urlDate)) {
+    console.log('URL Date', urlDate)
+    return urlDate
+  }
+
   // Parse HTML document to search
   const htmlDocument = document.implementation.createHTMLDocument('parser');
   const article = htmlDocument.createElement('div');
@@ -184,7 +180,10 @@ function getDateFromHTML(html, url) {
   console.log('checkSelectors()')
   if (!publishDate) publishDate = checkSelectors(article, html);
 
-  return publishDate;
+  if (publishDate) return publishDate;
+  if (urlDate) return urlDate;
+
+  return null;
 }
 
 const possibleKeys = [
@@ -326,7 +325,7 @@ function checkSelectors(article, html) {
 
   // Since we can't account for every possible selector a site will use,
   // we check the HTML for CSS classes or IDs that might contain the publish date
-  const possibleClassStrings = ['meta', 'publish'];
+  const possibleClassStrings = ['meta', 'publish', 'byline'];
   const classTest = new RegExp(`(?:(?:class|id)=")([ a-zA-Z0-9_-]*(${possibleClassStrings.join('|')})[ a-zA-Z0-9_-]*)(?:"?)`, 'gim');
 
   let classMatch;
@@ -362,10 +361,10 @@ function checkSelectors(article, html) {
   }
 
   function stripScripts(html) {
-    var div = document.createElement('div');
+    let div = document.createElement('div');
     div.innerHTML = html;
-    var scripts = div.getElementsByTagName('script');
-    var i = scripts.length;
+    let scripts = div.getElementsByTagName('script');
+    let i = scripts.length;
     while (i--) {
       scripts[i].parentNode.removeChild(scripts[i]);
     }
@@ -398,7 +397,7 @@ function checkSelectors(article, html) {
 }
 
 function getDateFromString(string) {
-  if (!string.trim()) return null;
+  if (!string || !string.trim()) return null;
   
   let date = getMomentObject(string);
   if (date) return date;
@@ -570,22 +569,28 @@ function formatDate(date) {
 }
 
 function getRelativeDate(date) {
-  if (date.isAfter(moment()) && isToday(date)) {
-    console.log('here')
+  const startOfPublishDate = date.clone().startOf('d')
+  const today = moment();
+  const yesterday = moment().subtract(1, 'd').startOf('d');
+
+  // if ((date.isAfter(today) && isToday(date)) || date.isSame(today, 'd')) {
+  //   console.log('here')
+  //   return 'today';
+  // } else {
+  //   const yesterday = moment().subtract(1, 'd');
+  //   if (date.isAfter(today)) {
+  //     return 'today';
+  //   } else {
+  //     return date.clone().startOf('d').from(today.startOf('d'));
+  //   }
+  // }
+
+  if (date.isSameOrAfter(today, 'd')) {
     return 'today';
+  } else if (date.isSame(yesterday, 'd')) {
+    return 'yesterday';
   } else {
-    const today = moment();
-    if (date.isSame(today, 'd')) {
-      console.log('here')
-      return date.fromNow();  
-    } else {
-      console.log('here')
-      if (date.isAfter(today)) {
-        return 'today';
-      } else {
-        return date.clone().startOf('d').from(today.startOf('d'));
-      }
-    }
+    return startOfPublishDate.from(today.startOf('d'));
   }
 }
 
