@@ -30,18 +30,6 @@ chrome.runtime.onMessage.addListener((request, sender) => {
 });
 
 function getDateFromPage(postId, url, tabId) {
-  // First we try to parse the date from the URL.
-  // If it exists and it is within a month
-  // it should be safe to assume it is correct
-  // const urlDate = getDateFromURL(url);
-  // if (urlDate && isRecent(urlDate)) {
-  //   sendDateMessage(tabId, postId, urlDate)
-  //   cachePublishDates(postId, urlDate);
-  //   return;
-  // }
-
-  // Finally we download the webpage HTML to
-  // try and parse the date from there
   getArticleHtml(url).then(html => {
     if (!html && !urlDate) return;
     const date = getDateFromHTML(html, url);
@@ -187,7 +175,7 @@ function getDateFromHTML(html, url) {
 }
 
 const possibleKeys = [
-  'datePublished', 'dateCreated', 'publishDate', 'published', 'publishedDate', 
+  'datePublished', 'dateCreated', 'publishDate', 'published', 'publishedDate',
   'articleChangeDateShort', 'post_date', 'dateText', 'date', 'uploadDate', 'publishedDateISO8601'
 ];
 const months = [
@@ -205,12 +193,15 @@ function checkHTMLString(html, url) {
   for (let domain of skipDomains) {
     if (url.includes(domain)) return null;
   }
+  
+  const regexString = `(?:(?:'|")?(?:${possibleKeys.join('|')})(?:'|")?: ?(?:'|"))([a-zA-Z0-9_.\\-:+, ]*)(?:'|")`;
 
-  const dateTest = new RegExp(`(?:'|")(?:${possibleKeys.join('|')})(?:'|")?\\s?:\\s?(?:'|")([a-zA-Z0-9_.\\-:+, ]*)(?:'|")`, 'ig');
+  // First try with global 
+  let dateTest = new RegExp(regexString, 'ig');
   let dateArray = html.match(dateTest);
 
   if (dateArray && dateArray.length) {
-    let dateString = dateArray[1];
+    let dateString = dateArray[0];
 
     // Prefer publish date over other meta data dates
     for (let date of dateArray) {
@@ -224,9 +215,19 @@ function checkHTMLString(html, url) {
       dateArray = dateString.match(/(?:["'] ?: ?["'])([ :.a-zA-Z0-9_-]*)(?:["'])/);
 
       if (dateArray && dateArray[1]) {
-        return getMomentObject(dateArray[1]);
+        let date = getMomentObject(dateArray[1]);
+        if (date) return date;
       }
     }
+  }
+
+  // Try matching without global flag
+  dateTest = new RegExp(regexString, 'i');
+  dateArray = html.match(dateTest);
+
+  if (dateArray && dateArray[1]) {
+    let date = getMomentObject(dateArray[1]);
+    if (date) return date;
   }
 
   return null;
