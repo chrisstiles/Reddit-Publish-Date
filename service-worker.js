@@ -5,12 +5,17 @@ self.addEventListener('fetch', e => {
     e.respondWith(fetch(e.request)
       .then(response => {
         const { status, statusText, headers, body } = response;
+
+        // Avoid console errors for common server error responses
+        if (status === 402 || status === 404) return new Response(null);
+
         const init = {
           status: status,
           statusText: statusText,
           headers: {}
         };
 
+        // Prevent attempts to preload resources
         headers.forEach((value, key) => {
           if (!value.includes('preload')) {
             init.headers[key] = value;
