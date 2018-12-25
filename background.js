@@ -129,10 +129,20 @@ function getDateFromURL(url) {
   }
 
   const dateTest = /([\./\-_]{0,1}(19|20)\d{2})[\./\-_]{0,1}(([0-3]{0,1}[0-9][\./\-_])|(\w{3,5}[\./\-_]))([0-3]{0,1}[0-9][\./\-]{0,1})/;
-  const dateString = url.match(dateTest);
+  let dateString = url.match(dateTest);
   
   if (dateString) {
-    return getMomentObject(dateString[0]);
+    let date = getMomentObject(dateString[0]);
+    if (date) return date;
+  }
+
+  const singleDigitTest = /\/(\d{8})\//;
+  dateString = url.match(singleDigitTest);
+
+  if (dateString) {
+    console.log(parseDigitOnlyDate(dateString[1]))
+    let date = getMomentObject(dateString[0]);
+    if (date) return date;
   }
 
   return null;
@@ -311,7 +321,7 @@ function checkMetaData(article) {
 
   // Check page title
   const title = article.querySelector('title');
-  if (title) {
+  if (title && title.innerText.match(/([^\d]*\d){8}/)) {
     const date = getDateFromString(title.innerText);
     if (date) return date;
   }
@@ -324,7 +334,7 @@ function checkSelectors(article, html) {
     'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post-date', 'post__date', 'article-date', 'article_date', 
     'Article__Date', 'pb-timestamp', 'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'article-info',
     'Timestamp-time', 'report-writer-date', 'publish-date', 'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 
-    'blog-post-meta', 'timeinfo-txt', 'field-name-post-date', 'post--meta', 'article-dateline', 'storydate',
+    'blog-post-meta', 'timeinfo-txt', 'field-name-post-date', 'post--meta', 'article-dateline', 'storydate', 'post-box-meta-single',
     'content-head', 'news_date', 'tk-soleil', 'entry-content', 'cmTimeStamp', 'meta p:first-child', 'entry__info'
   ];
 
@@ -376,15 +386,15 @@ function checkSelectors(article, html) {
 
   // Check more generic selectors that could be used for other dates
   // We'll make sure to only check these if they're inside an article tag
-  const additionalSelectors = ['datetime', 'date'];
-  for (let selector of additionalSelectors) {
-    let element = article.querySelector(`.${selector}`);
+  // const additionalSelectors = ['datetime', 'date'];
+  // for (let selector of additionalSelectors) {
+  //   let element = article.querySelector(`article .${selector}`);
 
-    if (element) {
-      let date = getDateFromString(element.innerText);
-      if (date) return date;
-    }
-  }
+  //   if (element) {
+  //     let date = getDateFromString(element.innerText);
+  //     if (date) return date;
+  //   }
+  // }
 
   // Check for time elements that might be publication date
   const timeElements = article.querySelectorAll('article time[datetime], time[pubdate]');
@@ -417,7 +427,7 @@ function getDateFromParts(string) {
 
         let day, month;
 
-        if (parts[1] > 12) {
+        if (parts[0] > 12) {
           day = parts[0];
           month = parts[1];
         } else if (parts[1] > 12) {
@@ -439,8 +449,8 @@ function getDateFromParts(string) {
             month = parts[1];
           }
         }
-
-        return dateString = `${month}-${day}-${year}`;
+        
+        return `${month}-${day}-${year}`;
       }
     }
   }
@@ -518,9 +528,6 @@ function getMomentObject(dateString) {
   // Some invalid date strings include the date without formatting
   let digitDate = dateString.replace(/[ \.\/-]/g, '');
   const dateNumbers = parseDigitOnlyDate(digitDate);
-  // console.log(digitDate)
-  // console.log(dateString)
-  // console.log(dateNumbers)
 
   if (dateNumbers) {
     date = moment(dateNumbers);
