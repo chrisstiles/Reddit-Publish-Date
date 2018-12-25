@@ -7,7 +7,7 @@ self.addEventListener('fetch', e => {
         const { status, statusText, headers, body } = response;
 
         // Avoid console errors for common server error responses
-        if (status === 402 || status === 404) return new Response(null);
+        if (status === 402 || status === 404) return new Response(body);
 
         const init = {
           status: status,

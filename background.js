@@ -323,20 +323,20 @@ function checkSelectors(article, html) {
   const possibleSelectors = [
     'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post-date', 'post__date', 'article-date', 'article_date', 
     'Article__Date', 'pb-timestamp', 'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'article-info',
-    'Timestamp-time', 'report-writer-date', 'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 
-    'blog-post-meta', 'timeinfo-txt', 'field-name-post-date', 'post--meta', 'article-dateline', 'storydate', 
-    'content-head', 'news_date', 'tk-soleil', 'entry-content', 'cmTimeStamp', 'meta p:first-child'
+    'Timestamp-time', 'report-writer-date', 'publish-date', 'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 
+    'blog-post-meta', 'timeinfo-txt', 'field-name-post-date', 'post--meta', 'article-dateline', 'storydate',
+    'content-head', 'news_date', 'tk-soleil', 'entry-content', 'cmTimeStamp', 'meta p:first-child', 'entry__info'
   ];
 
   // Since we can't account for every possible selector a site will use,
   // we check the HTML for CSS classes or IDs that might contain the publish date
-  const possibleClassStrings = ['meta', 'publish', 'byline'];
+  const possibleClassStrings = ['publish', 'byline'];
   const classTest = new RegExp(`(?:(?:class|id)=")([ a-zA-Z0-9_-]*(${possibleClassStrings.join('|')})[ a-zA-Z0-9_-]*)(?:"?)`, 'gim');
 
   let classMatch;
   while (classMatch = classTest.exec(html)) {
     if (!possibleSelectors.includes(classMatch[1])) {
-      possibleSelectors.unshift(classMatch[1]);
+      possibleSelectors.push(classMatch[1]);
     }
   }
 
@@ -354,8 +354,6 @@ function checkSelectors(article, html) {
           const date = getMomentObject(dateAttribute);
           if (date) return date;
         }
-
-
 
         element.innerHTML = stripScripts(element.innerHTML)
         const dateString = element.innerText || element.getAttribute('value');
@@ -401,10 +399,63 @@ function checkSelectors(article, html) {
   return null;
 }
 
+function getDateFromParts(string) {
+  if (!string || typeof string !== 'string') return null;
+
+  const dateArray = string.replace(/[\.\/-]/g, '-').split('-');
+  if (dateArray && dateArray.length === 3) {
+    for (let datePart of dateArray) {
+      if (datePart.length === 4) {
+        const year = datePart;
+        const parts = dateArray.reduce((filtered, part) => {
+          if (part !== year) {
+            filtered.push(Number(part));
+          }
+
+          return filtered;
+        }, []);
+
+        let day, month;
+
+        if (parts[1] > 12) {
+          day = parts[0];
+          month = parts[1];
+        } else if (parts[1] > 12) {
+          day = parts[1];
+          month = parts[0];
+        } else {
+          const today = moment();
+          const currentMonth = today.month();
+          const currentDay = today.date();
+
+          if (parts[0] === currentDay && parts[1] === currentMonth) {
+            day = parts[0];
+            month = parts[1];
+          } else if (parts[1] === currentDay && parts[0] === currentMonth) {
+            day = parts[1];
+            month = parts[0];
+          } else {
+            day = parts[0];
+            month = parts[1];
+          }
+        }
+
+        return dateString = `${month}-${day}-${year}`;
+      }
+    }
+  }
+
+  return null;
+}
+
 function getDateFromString(string) {
   if (!string || !string.trim()) return null;
+  string = string.trim();
   
   let date = getMomentObject(string);
+  if (date) return date;
+
+  date = getMomentObject(getDateFromParts(string));
   if (date) return date;
 
   const numberDateTest = /\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{1,4}/;
@@ -465,7 +516,11 @@ function getMomentObject(dateString) {
   }
 
   // Some invalid date strings include the date without formatting
-  const dateNumbers = parseDigitOnlyDate(dateString);
+  let digitDate = dateString.replace(/[ \.\/-]/g, '');
+  const dateNumbers = parseDigitOnlyDate(digitDate);
+  // console.log(digitDate)
+  // console.log(dateString)
+  // console.log(dateNumbers)
 
   if (dateNumbers) {
     date = moment(dateNumbers);
@@ -493,6 +548,7 @@ function getDateFromRelativeTime(num, units) {
 
 function parseDigitOnlyDate(dateString) {
   if (!dateString) return null;
+
   let matchedDate = dateString.replace(/\/|-\./g, '').match(/\b(\d{6}|\d{8})\b/);
   
   if (!matchedDate) {
@@ -518,50 +574,14 @@ function parseDigitOnlyDate(dateString) {
 
     year = dateArray[2];
   } else {
-    if (Number(dateString[0]) !== 2) {
-      const dateArray = dateString.replace(/(\d{2})(\d{2})(\d{4})/, '$1-$2-$3').split('-');
-      if (dateArray) {
-        if (Number(dateArray[0]) > 12) {
-          dayMonthArray = [dateArray[1], dateArray[0]];
-        } else {
-          dayMonthArray = [dateArray[0], dateArray[1]];
-        }
+    let date = getDateFromParts(dateString.replace(/(\d{2})(\d{2})(\d{4})/, '$1-$2-$3'));
+    if (date && isValid(date)) return date;
 
-        year = dateArray[2];
-      }
-
-    } else {
-      const dateArray = dateString.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3').split('-');
-      if (dateArray) {
-        dayMonthArray = [dateArray[1], dateArray[2]]
-        year = dateArray[0];
-      }
-    }
+    date = getDateFromParts(dateString.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
+    if (date && isValid(date)) return date;
   }
 
-  // Date array is most likely [month, day], but try to check if possible
-  const possibleMonth = Number(dayMonthArray[0]);
-  const possibleDay = Number(dayMonthArray[1]);
-
-  if (possibleMonth === possibleDay) {
-    day = possibleDay;
-    month = possibleMonth;
-  } else if (possibleMonth > 12) {
-    day = possibleMonth;
-    month = possibleDay;
-  } else {
-    // Have to guess which is month and which is date.
-    // We can guess using the current month and day
-    if (currentMonth === possibleDay && currentDay === possibleMonth) {
-      day = possibleMonth;
-      month = possibleDay;
-    } else {
-      day = possibleDay;
-      month = possibleMonth;
-    }
-  }
-
-  return `${month}-${day}-${year}`;
+  return null;
 }
 
 function formatDate(date) {
