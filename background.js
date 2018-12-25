@@ -411,48 +411,49 @@ function checkSelectors(article, html) {
 
 function getDateFromParts(string) {
   if (!string || typeof string !== 'string') return null;
-
+  let year, day, month;
   const dateArray = string.replace(/[\.\/-]/g, '-').split('-');
   if (dateArray && dateArray.length === 3) {
     for (let datePart of dateArray) {
       if (datePart.length === 4) {
-        const year = datePart;
-        const parts = dateArray.reduce((filtered, part) => {
-          if (part !== year) {
-            filtered.push(Number(part));
-          }
-
-          return filtered;
-        }, []);
-
-        let day, month;
-
-        if (parts[0] > 12) {
-          day = parts[0];
-          month = parts[1];
-        } else if (parts[1] > 12) {
-          day = parts[1];
-          month = parts[0];
-        } else {
-          const today = moment();
-          const currentMonth = today.month();
-          const currentDay = today.date();
-
-          if (parts[0] === currentDay && parts[1] === currentMonth) {
-            day = parts[0];
-            month = parts[1];
-          } else if (parts[1] === currentDay && parts[0] === currentMonth) {
-            day = parts[1];
-            month = parts[0];
-          } else {
-            day = parts[0];
-            month = parts[1];
-          }
-        }
-        
-        return `${month}-${day}-${year}`;
+        year = datePart;
       }
     }
+
+    if (!year) year = dateArray[dateArray.length - 1];
+
+    const parts = dateArray.reduce((filtered, part) => {
+      if (part !== year) {
+        filtered.push(Number(part));
+      }
+
+      return filtered;
+    }, []);
+
+    if (parts[0] > 12) {
+      day = parts[0];
+      month = parts[1];
+    } else if (parts[1] > 12) {
+      day = parts[1];
+      month = parts[0];
+    } else {
+      const today = moment();
+      const currentMonth = today.month();
+      const currentDay = today.date();
+
+      if (parts[0] === currentDay && parts[1] === currentMonth) {
+        day = parts[0];
+        month = parts[1];
+      } else if (parts[1] === currentDay && parts[0] === currentMonth) {
+        day = parts[1];
+        month = parts[0];
+      } else {
+        day = parts[0];
+        month = parts[1];
+      }
+    }
+
+    return `${month}-${day}-${year}`;
   }
 
   return null;
@@ -574,10 +575,13 @@ function parseDigitOnlyDate(dateString) {
     const dateArray = dateString.replace(/(\d{2})(\d{2})(\d{2})/, '$1-$2-$3').split('-');
 
     if (Number(dateArray[0]) > 12) {
+
       dayMonthArray = [dateArray[1], dateArray[0]];
     } else {
       dayMonthArray = [dateArray[0], dateArray[1]];
     }
+
+    console.log(dayMonthArray)
 
     year = dateArray[2];
   } else {
