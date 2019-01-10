@@ -3,7 +3,6 @@
 ////////////////////////////
 
 chrome.runtime.onInstalled.addListener(() => {
-  clearCache();
   // Use a service worker to preloading resources from fetched pages 
   navigator.serviceWorker.register('service-worker.js');
 });
@@ -198,6 +197,7 @@ const months = [
 ]
 
 function checkHTMLString(html, url) {
+  console.log('checkHTMLString()')
   if (!html) return null;
 
   // Certain websites include JSON data for other posts
@@ -269,6 +269,7 @@ function getYoutubeDate(html) {
 }
 
 function checkLinkedData(article, url) {
+  console.log('checkLinkedData()')
   let linkedData = article.querySelectorAll('script[type="application/ld+json"]');
 
   if (linkedData && linkedData.length) {
@@ -299,6 +300,7 @@ function checkLinkedData(article, url) {
 }
 
 function checkMetaData(article) {
+  console.log('checkMetaData()')
   const possibleProperties = [
     'datePublished', 'article:published_time', 'article:published', 'pubdate', 'publishdate',
     'timestamp', 'date', 'DC.date.issued', 'bt:pubDate', 'sailthru.date', 'meta', 'og:published_time',
@@ -330,12 +332,13 @@ function checkMetaData(article) {
 }
 
 function checkSelectors(article, html) {
+  console.log('checkSelectors()')
   const possibleSelectors = [
     'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post-date', 'post__date', 'article-date', 'article_date', 
     'Article__Date', 'pb-timestamp', 'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'article-info',
     'Timestamp-time', 'report-writer-date', 'publish-date', 'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 
     'blog-post-meta', 'timeinfo-txt', 'field-name-post-date', 'post--meta', 'article-dateline', 'storydate', 'post-box-meta-single',
-    'content-head', 'news_date', 'tk-soleil', 'entry-content', 'cmTimeStamp', 'meta p:first-child', 'entry__info'
+    'content-head', 'news_date', 'tk-soleil', 'cmTimeStamp', 'meta p:first-child', 'entry__info'
   ];
 
   // Since we can't account for every possible selector a site will use,
@@ -362,13 +365,19 @@ function checkSelectors(article, html) {
 
         if (dateAttribute) {
           const date = getMomentObject(dateAttribute);
-          if (date) return date;
+          if (date) {
+            console.log(element);
+            return date
+          };
         }
 
         element.innerHTML = stripScripts(element.innerHTML)
         const dateString = element.innerText || element.getAttribute('value');
         const date = getDateFromString(dateString);
-        if (date) return date;
+        if (date) {
+          console.log(element);
+          return date
+        };
       }
     }
   }
@@ -500,6 +509,7 @@ function getDateFromString(string) {
 
 function getMomentObject(dateString) {
   if (!dateString) return null;
+  if (dateString.length && dateString.length > 35) return null;
   
   let date = moment(dateString);
   if (isValid(date)) return date;
