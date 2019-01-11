@@ -108,10 +108,6 @@ function getDate(url) {
   getArticleHtml(url).then(article => {
     let date = getDateFromHTML(article, url);
 
-    if (date) {
-      console.log('HTML Date:');
-    }
-
     console.log(formatDate(date), getMomentObject(date));
   });
 }
@@ -139,7 +135,6 @@ function getDateFromURL(url) {
   dateString = url.match(singleDigitTest);
 
   if (dateString) {
-    console.log(parseDigitOnlyDate(dateString[1]))
     let date = getMomentObject(dateString[0]);
     if (date) return date;
   }
@@ -197,7 +192,6 @@ const months = [
 ]
 
 function checkHTMLString(html, url) {
-  console.log('checkHTMLString()')
   if (!html) return null;
 
   // Certain websites include JSON data for other posts
@@ -269,7 +263,6 @@ function getYoutubeDate(html) {
 }
 
 function checkLinkedData(article, url) {
-  console.log('checkLinkedData()')
   let linkedData = article.querySelectorAll('script[type="application/ld+json"]');
 
   if (linkedData && linkedData.length) {
@@ -300,7 +293,6 @@ function checkLinkedData(article, url) {
 }
 
 function checkMetaData(article) {
-  console.log('checkMetaData()')
   const possibleProperties = [
     'datePublished', 'article:published_time', 'article:published', 'pubdate', 'publishdate',
     'timestamp', 'date', 'DC.date.issued', 'bt:pubDate', 'sailthru.date', 'meta', 'og:published_time',
@@ -332,7 +324,6 @@ function checkMetaData(article) {
 }
 
 function checkSelectors(article, html) {
-  console.log('checkSelectors()')
   const possibleSelectors = [
     'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post-date', 'post__date', 'article-date', 'article_date', 
     'Article__Date', 'pb-timestamp', 'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'article-info',
@@ -366,7 +357,7 @@ function checkSelectors(article, html) {
         if (dateAttribute) {
           const date = getMomentObject(dateAttribute);
           if (date) {
-            console.log(element);
+            if (date) return date;
             return date
           };
         }
@@ -374,10 +365,7 @@ function checkSelectors(article, html) {
         element.innerHTML = stripScripts(element.innerHTML)
         const dateString = element.innerText || element.getAttribute('value');
         const date = getDateFromString(dateString);
-        if (date) {
-          console.log(element);
-          return date
-        };
+        if (date) return date;
       }
     }
   }
@@ -392,18 +380,6 @@ function checkSelectors(article, html) {
     }
     return div.innerHTML;
   }
-
-  // Check more generic selectors that could be used for other dates
-  // We'll make sure to only check these if they're inside an article tag
-  // const additionalSelectors = ['datetime', 'date'];
-  // for (let selector of additionalSelectors) {
-  //   let element = article.querySelector(`article .${selector}`);
-
-  //   if (element) {
-  //     let date = getDateFromString(element.innerText);
-  //     if (date) return date;
-  //   }
-  // }
 
   // Check for time elements that might be publication date
   const timeElements = article.querySelectorAll('article time[datetime], time[pubdate]');
