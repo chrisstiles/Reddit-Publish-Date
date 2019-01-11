@@ -45,7 +45,7 @@ function getDateFromPage(postId, url, tabId) {
 // Send date back to client scri pt
 function sendDateMessage(tabId, postId, date, url) {
   const formattedDate = formatDate(date);
-  // console.log(date)
+
   if (moment(date).isBefore(moment().subtract(10, 'd'))) {
     console.log(url)
     console.log(date)
@@ -202,7 +202,7 @@ function checkHTMLString(html, url) {
     if (url.includes(domain)) return null;
   }
   
-  const regexString = `(?:(?:'|"|'b)(?:${possibleKeys.join('|')})(?:'|")?: ?(?:'|"))([a-zA-Z0-9_.\\-:+, ]*)(?:'|")`;
+  const regexString = `(?:(?:'|"|\\b)(?:${possibleKeys.join('|')})(?:'|")?: ?(?:'|"))([a-zA-Z0-9_.\\-:+, /]*)(?:'|")`;
 
   // First try with global 
   let dateTest = new RegExp(regexString, 'ig');
@@ -294,12 +294,12 @@ function checkLinkedData(article, url) {
 
 function checkMetaData(article) {
   const possibleProperties = [
-    'datePublished', 'article:published_time', 'article:published', 'pubdate', 'publishdate',
-    'timestamp', 'date', 'DC.date.issued', 'bt:pubDate', 'sailthru.date', 'meta', 'og:published_time',
-    'article.published', 'published-date', 'article.created', 'date_published', 'vr:published_time',
+    'datePublished', 'article:published_time', 'article:published', 'pubdate', 'publishdate', 'article:post_date',
+    'timestamp', 'date', 'DC.date.issued', 'bt:pubDate', 'sailthru.date', 'meta', 'og:published_time', 'rnews:datePublished',
+    'article.published', 'published-date', 'article.created', 'date_published', 'vr:published_time', 'video:release_date',
     'cxenseparse:recs:publishtime', 'article_date_original', 'cXenseParse:recs:publishtime', 
     'DATE_PUBLISHED', 'shareaholic:article_published_time', 'parsely-pub-date', 'twt-published-at',
-    'published_date', 'dc.date', 'field-name-post-date', 'Last-modified', 'posted'
+    'published_date', 'dc.date', 'field-name-post-date', 'Last-modified', 'posted', 'RELEASE_DATE'
   ];
 
   const metaData = article.querySelectorAll('meta');
@@ -325,11 +325,11 @@ function checkMetaData(article) {
 
 function checkSelectors(article, html) {
   const possibleSelectors = [
-    'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post-date', 'post__date', 'article-date', 'article_date', 
-    'Article__Date', 'pb-timestamp', 'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'article-info',
-    'Timestamp-time', 'report-writer-date', 'publish-date', 'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 
-    'blog-post-meta', 'timeinfo-txt', 'field-name-post-date', 'post--meta', 'article-dateline', 'storydate', 'post-box-meta-single',
-    'content-head', 'news_date', 'tk-soleil', 'cmTimeStamp', 'meta p:first-child', 'entry__info'
+    'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post-date', 'post__date', 'article-date', 'article_date', 'publication-date',
+    'Article__Date', 'pb-timestamp', 'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'article-info', 'dateInfo',
+    'Timestamp-time', 'report-writer-date', 'publish-date', 'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 'article-source',
+    'blog-post-meta', 'timeinfo-txt', 'field-name-post-date', 'post--meta', 'article-dateline', 'storydate', 'post-box-meta-single', 'nyhedsdato',
+    'content-head', 'news_date', 'tk-soleil', 'cmTimeStamp', 'meta p:first-child', 'entry__info', 'wrap-date-location', 'story .citation', 'ArticleTitle'
   ];
 
   // Since we can't account for every possible selector a site will use,
@@ -345,25 +345,25 @@ function checkSelectors(article, html) {
   }
 
   for (let selector of possibleSelectors) {
-    let selectorString = `[itemprop="${selector}"], .${selector}, #${selector}`;
-    let elements = article.querySelectorAll(selectorString);
+    const selectorString = `[itemprop="${selector}"], .${selector}, #${selector}`;
+    const elements = article.querySelectorAll(selectorString);
     
     // Loop through elements to see if one is a date
     if (elements && elements.length) {
       for (let element of elements) {
-        let dateElement = element.querySelector('time') || element;
-        let dateAttribute = dateElement.getAttribute('datetime') || dateElement.getAttribute('content');
+        const dateElement = element.querySelector('time') || element;
+        const dateAttribute = dateElement.getAttribute('datetime') || dateElement.getAttribute('content');
 
         if (dateAttribute) {
           const date = getMomentObject(dateAttribute);
           if (date) {
             if (date) return date;
-            return date
           };
         }
 
-        element.innerHTML = stripScripts(element.innerHTML)
-        const dateString = element.innerText || element.getAttribute('value');
+        dateElement.innerHTML = stripScripts(dateElement.innerHTML)
+        
+        const dateString = dateElement.innerText || dateElement.getAttribute('value');
         const date = getDateFromString(dateString);
         if (date) return date;
       }
@@ -387,6 +387,18 @@ function checkSelectors(article, html) {
     for (let element of timeElements) {element.getAttribute('datetime') || element.getAttribute('pubdate')
       const dateString = element.getAttribute('datetime') || element.innerText;
       const date = getDateFromString(dateString);
+      if (date) return date;
+    }
+  }
+
+  // If all else fails, try searching for very generic selectors.
+  // We only use this date if there is only one occurance 
+  const genericSelectors = ['.date', '#date', '.byline', '.data', '.datetime', '.submitted'];
+  for (let selector of genericSelectors) {
+    const elements = article.querySelectorAll(`article ${selector}, .article ${selector}, #article ${selector}, header ${selector}, ${selector}`);
+
+    if (elements.length === 1) {
+      const date = getDateFromString(elements[0].innerText);
       if (date) return date;
     }
   }
@@ -457,6 +469,10 @@ function getDateFromString(string) {
   const numberDateTest = /\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{1,4}/;
   let dateString = string.match(numberDateTest);
   if (dateString) date = getMomentObject(dateString[0]);
+  if (date) return date;
+
+  dateString = string.match(/(?:published):? (.*$)/i)
+  if (dateString) date = getMomentObject(dateString[1]);
   if (date) return date;
 
   const stringDateTest = new RegExp(`/(${months.join('|')})\w*\b \d{1,2},? {1,2}(\d{4}|\d{2})/i`, 'i');
@@ -567,8 +583,6 @@ function parseDigitOnlyDate(dateString) {
       dayMonthArray = [dateArray[0], dateArray[1]];
     }
 
-    console.log(dayMonthArray)
-
     year = dateArray[2];
   } else {
     let date = getDateFromParts(dateString.replace(/(\d{2})(\d{2})(\d{4})/, '$1-$2-$3'));
@@ -673,12 +687,23 @@ function getColorClass(_date) {
 
 function isValid(date) {
   if (!moment.isMoment(date)) date = moment(date);
+  const input = date._i;
+  if (!input) return false;
 
   // Check if the date is on or before tomorrow to account for time zone differences
   const tomorrow = moment().add(1, 'd');
   const longAgo = moment().subtract(20, 'y');
+  const inputLength = date._i.length;
+  const digits = date._i.match(/\d/g);
+  const digitLength = !digits ? 0 : digits.length;
 
-  return date.isValid() && date.isSameOrBefore(tomorrow, 'd') && date.isSameOrAfter(longAgo);
+  return (
+    date.isValid() && 
+    date.isSameOrBefore(tomorrow, 'd') && 
+    date.isSameOrAfter(longAgo) && 
+    inputLength >= 5 && 
+    digitLength >= 3
+  );
 }
 
 function isToday(date) {
