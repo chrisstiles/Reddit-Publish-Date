@@ -46,11 +46,12 @@ function getDateFromPage(postId, url, tabId) {
 function sendDateMessage(tabId, postId, date, url) {
   const formattedDate = formatDate(date);
 
-  if (moment(date).isBefore(moment().subtract(10, 'd'))) {
-    console.log(url)
-    console.log(date)
-    console.log(formattedDate)
-  }
+  // Uncomment to alert for old dates that may potentially be incorrect
+  // if (moment(date).isBefore(moment().subtract(10, 'd'))) {
+  //   console.log(url)
+  //   console.log(date)
+  //   console.log(formattedDate)
+  // }
 
   if (formattedDate) {
     const data = { postId, date: formattedDate };
@@ -94,19 +95,24 @@ function getArticleHtml(url) {
 
   return fetch(request)
     .then(response => {
+      // Do not attempt to check if page has 404 error
+      if (response.headers.get('RPD-Error-Status') === '404') return null;
+      
       return response.text();
     })
-    .then(html => {
-      return html;
-    }).catch(error => {
+    .catch(error => {
       console.log(error)
     });
 }
 
 // Used for testing with background.js console
 function getDate(url) {
-  getArticleHtml(url).then(article => {
-    let date = getDateFromHTML(article, url);
+  getArticleHtml(url).then(html => {
+    if (!html) {
+      console.log('No html')
+    }
+
+    let date = getDateFromHTML(html, url);
 
     console.log(formatDate(date), getMomentObject(date));
   });
