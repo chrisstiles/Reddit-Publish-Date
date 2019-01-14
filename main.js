@@ -200,6 +200,13 @@
       publishElement.innerHTML = `<span>Published ${date}</span>`;
       if (cssClasses.length) {
         publishElement.classList.add(...cssClasses);
+
+        // Prevent being flush with RES user tag
+        const previousElement = publishElement.previousSibling;
+        if (previousElement && previousElement.classList.contains('RESUserTag')) {
+          console.log(previousElement)
+          publishElement.classList.add('after-user-tag');
+        }
       }
     }
   }

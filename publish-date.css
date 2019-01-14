@@ -26,6 +26,9 @@
   z-index: 200;
 }
 
+#siteTable *[data-checked-date="true"] span.author {
+  margin-right:0.5em;
+}
 
 /*-----------------------*/
 /* Colors */
@@ -104,8 +107,12 @@
   text-transform:lowercase;
 }
 
+#siteTable .rpd-publish-date.rpd-text.after-user-tag {
+  margin-left:5px;
+}
+
 #siteTable .rpd-publish-date.rpd-text:before {
-  top:0;
+  top:-1px;
 }
 
 
