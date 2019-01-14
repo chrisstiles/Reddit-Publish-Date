@@ -19,8 +19,16 @@ chrome.runtime.onMessage.addListener((request, sender) => {
   if (type === 'get-date') {
     const { id: tabId } = sender.tab;
     chrome.storage.local.get(postId, dateObject => {
-      if (dateObject[postId]) {
-        sendDateMessage(tabId, postId, dateObject[postId]);
+      let dateString = dateObject[postId];
+      if (dateString) {
+        let isEstimate = false;
+
+        if (dateString.includes('estimate')) {
+          isEstimate = true;
+          dateString.replace('estimate', '');
+        }
+
+        sendDateMessage(tabId, postId, dateString, isEstimate);
         return;
       }
 
@@ -36,14 +44,15 @@ function getDateFromPage(postId, url, tabId) {
 
     // Publish date was successfully found, send to client script and cache result
     if (date) {
-      sendDateMessage(tabId, postId, date, url);
-      cachePublishDates(postId, date);
+      handleDateFound(tabId, postId, date);
+    } else {
+      getDateFromArchiveSnapshot(tabId, postId, url);
     }
   });
 }
 
 // Send date back to client scri pt
-function sendDateMessage(tabId, postId, date, url) {
+function sendDateMessage(tabId, postId, date, isEstimate) {
   const formattedDate = formatDate(date);
 
   // Uncomment to alert for old dates that may potentially be incorrect
@@ -79,10 +88,17 @@ function sendDateMessage(tabId, postId, date, url) {
       cssClasses.push('rpd-date');
     }
 
+    if (isEstimate) cssClasses.push('rpd-estimate');
+
     data.cssClasses = cssClasses;
 
     chrome.tabs.sendMessage(tabId, data);
   }
+}
+
+function handleDateFound(tabId, postId, date, isEstimate) {
+  sendDateMessage(tabId, postId, date, isEstimate);
+  cachePublishDates(postId, date);
 }
 
 function getArticleHtml(url) {
@@ -96,8 +112,9 @@ function getArticleHtml(url) {
   return fetch(request)
     .then(response => {
       // Do not attempt to check if page has 404 error
-      if (response.headers.get('RPD-Error-Status') === '404') return null;
-      
+      const error = response.headers.get('RPD-Error-Status');
+      if (error && error !== '402') return '';
+
       return response.text();
     })
     .catch(error => {
@@ -112,9 +129,14 @@ function getDate(url) {
       console.log('No html')
     }
 
-    let date = getDateFromHTML(html, url);
+    const htmlDate = getDateFromHTML(html, url);
 
-    console.log(formatDate(date), getMomentObject(date));
+    if (htmlDate) {
+      console.log('HTML Date:')
+      console.log(formatDate(htmlDate), getMomentObject(htmlDate));
+    } else {
+      getSnapshot(url)
+    }
   });
 }
 
@@ -332,9 +354,9 @@ function checkMetaData(article) {
 function checkSelectors(article, html) {
   const possibleSelectors = [
     'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post-date', 'post__date', 'article-date', 'article_date', 'publication-date',
-    'Article__Date', 'pb-timestamp', 'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'article-info', 'dateInfo',
+    'Article__Date', 'pb-timestamp', 'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'article-info', 'dateInfo', 'article__date',
     'Timestamp-time', 'report-writer-date', 'publish-date', 'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 'article-source',
-    'blog-post-meta', 'timeinfo-txt', 'field-name-post-date', 'post--meta', 'article-dateline', 'storydate', 'post-box-meta-single', 'nyhedsdato',
+    'blog-post-meta', 'timeinfo-txt', 'field-name-post-date', 'post--meta', 'article-dateline', 'storydate', 'post-box-meta-single', 'nyhedsdato', 'blog_date',
     'content-head', 'news_date', 'tk-soleil', 'cmTimeStamp', 'meta p:first-child', 'entry__info', 'wrap-date-location', 'story .citation', 'ArticleTitle'
   ];
 
@@ -498,6 +520,74 @@ function getDateFromString(string) {
   if (date) return date;
 
   return null; 
+}
+
+
+////////////////////////////
+// Arhive.org API
+////////////////////////////
+
+let isCheckingArchive = false;
+let archiveIndex = 0;
+let archiveLinks = [];
+
+function getDateFromArchiveSnapshot(tabId, postId, url) {
+  archiveLinks.push({ tabId, postId, url });
+
+  if (!isCheckingArchive) {
+    isCheckingArchive = true;
+    setArchiveTimeout();
+  }
+}
+
+// Avoid being throttled by the API by sending requests at a specific interval
+function setArchiveTimeout() {
+  if (archiveIndex < archiveLinks.length) {
+    const interval = 200;
+    const delay = archiveLinks.length === 1 ? 0 : interval;
+    setTimeout(() => {
+      if (archiveLinks[archiveIndex]) {
+        const { tabId, postId, url } = archiveLinks[archiveIndex];
+
+        getSnapshot(url).then(date => {
+          if (date) handleDateFound(tabId, postId, date, true);
+        });
+
+        archiveIndex++;
+
+        setArchiveTimeout();
+      }
+    }, delay);
+  } else {
+    isCheckingArchive = false;
+    archiveIndex = 0;
+    archiveLinks = [];
+  }
+}
+
+function getSnapshot(postUrl) {
+  const urlObject = new URL(postUrl);
+  const urlPart = encodeURIComponent(urlObject.origin + urlObject.pathname);
+  const url = `https://web.archive.org/cdx/search/cdx?limit=2&fl=timestamp&output=json&url=${urlPart}`;
+
+  const headers = new Headers();
+  headers.append('Reddit-Publish-Date', 'true');
+
+  const request = new Request(url, { headers });
+  
+  return fetch(request)
+    .then(response => {
+      return response.json();
+    })
+    .then(results => {
+      // Don't trust result if this is the first snapshot
+      if (results.length >= 3) {
+        const date = moment(results[2][0], 'YYYYMMDDhhmmss');
+
+        if (isValid(date)) return date;
+      }
+      return null;
+    });
 }
 
 
@@ -743,11 +833,14 @@ let currentIds = [];
 let isClearingCache = false;
 let cacheTimer;
 
-function cachePublishDates(postId, date) {
+function cachePublishDates(postId, date, isEstimate) {
   if (!moment.isMoment(date)) date = getMomentObject(date);
   if (!date) return;
 
-  cache[postId] = date.toISOString();
+  let dateString = date.toISOString();
+  if (isEstimate) dateString += 'estimate';
+
+  cache[postId] = dateString;
   cacheId(postId);
   startCacheTimer();
 }

@@ -7,7 +7,8 @@ self.addEventListener('fetch', e => {
         const { status, statusText, headers, body } = response;
 
         // Avoid console errors for common server error responses
-        if (status === 402 || status === 404) {
+        const errorCodes = [402, 403, 404, 503];
+        if (errorCodes.includes(status)) {
           return new Response(body, { headers: { 'RPD-Error-Status': String(status) } });
         }
 

@@ -203,8 +203,8 @@
 
         // Prevent being flush with RES user tag
         const previousElement = publishElement.previousSibling;
+        
         if (previousElement && previousElement.classList.contains('RESUserTag')) {
-          console.log(previousElement)
           publishElement.classList.add('after-user-tag');
         }
       }
@@ -221,7 +221,7 @@
       if (url.includes(`.${extension}`)) return false;
     }
 
-    const invalidDomains = ['reddit.com', 'redd.it', 'imgur.com', 'gfycat.com'];
+    const invalidDomains = ['reddit.com', 'redd.it', 'imgur.com', 'gfycat.com', 'wikipedia.com', 'twitter.com'];
 
     for (let domain of invalidDomains) {
       if (url.includes(`.${domain}`) || url.includes(`//${domain}`)) return false;

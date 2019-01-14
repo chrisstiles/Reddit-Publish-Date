@@ -157,3 +157,20 @@
 #siteTable .rpd-publish-date.rpd-bubble.rpd-date:before {
   bottom:0;
 }
+
+
+/*-----------------------*/
+/* Estimated Dates */
+
+.rpd-publish-date.rpd-estimate.rpd-bubble {
+  opacity:.7;
+}
+
+.rpd-publish-date.rpd-estimate span:after {
+  content:" (estimate)";
+  opacity:.95;
+}
+
+.rpd-publish-date.rpd-estimate.rpd-text span:after {
+  opacity:.8;
+}
