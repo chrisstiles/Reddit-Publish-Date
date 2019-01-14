@@ -46,7 +46,10 @@ function getDateFromPage(postId, url, tabId) {
     if (date) {
       handleDateFound(tabId, postId, date);
     } else {
-      getDateFromArchiveSnapshot(tabId, postId, url);
+      // Getting date from archived snapshots is not accurate yet
+      // TODO: Improve accuracy by using snapshot date to 
+      // try to find date in page
+      //getDateFromArchiveSnapshot(tabId, postId, url);
     }
   });
 }
@@ -543,7 +546,7 @@ function getDateFromArchiveSnapshot(tabId, postId, url) {
 // Avoid being throttled by the API by sending requests at a specific interval
 function setArchiveTimeout() {
   if (archiveIndex < archiveLinks.length) {
-    const interval = 200;
+    const interval = 500;
     const delay = archiveLinks.length === 1 ? 0 : interval;
     setTimeout(() => {
       if (archiveLinks[archiveIndex]) {
