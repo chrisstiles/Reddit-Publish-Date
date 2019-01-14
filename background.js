@@ -356,7 +356,7 @@ function checkMetaData(article) {
 
 function checkSelectors(article, html) {
   const possibleSelectors = [
-    'datePublished', 'published', 'pubdate', 'timestamp', 'timeStamp', 'post-date', 'post__date', 'article-date', 'article_date', 'publication-date',
+    'datePublished', 'published', 'pubdate', 'timestamp', 'post-date', 'post__date', 'article-date', 'article_date', 'publication-date',
     'Article__Date', 'pb-timestamp', 'meta', 'lastupdatedtime', 'article__meta', 'post-time', 'video-player__metric', 'article-info', 'dateInfo', 'article__date',
     'Timestamp-time', 'report-writer-date', 'publish-date', 'published_date', 'byline', 'date-display-single', 'tmt-news-meta__date', 'article-source',
     'blog-post-meta', 'timeinfo-txt', 'field-name-post-date', 'post--meta', 'article-dateline', 'storydate', 'post-box-meta-single', 'nyhedsdato', 'blog_date',
@@ -376,7 +376,7 @@ function checkSelectors(article, html) {
   }
 
   for (let selector of possibleSelectors) {
-    const selectorString = `[itemprop="${selector}"], .${selector}, #${selector}`;
+    const selectorString = `[itemprop="${selector}"], [class^="${selector}" i], [id^="${selector}" i]`;
     const elements = article.querySelectorAll(selectorString);
     
     // Loop through elements to see if one is a date
