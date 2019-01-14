@@ -278,7 +278,7 @@ function checkLinkedData(article, url) {
           }
         }
 
-      } catch {
+      } catch(e) {
         // The website has invalid JSON, attempt 
         // to get the date with Regex
         for (let key of possibleKeys) {
