@@ -133,7 +133,7 @@ function getDate(url) {
     }
 
     const htmlDate = getDateFromHTML(html, url);
-
+    
     if (htmlDate) {
       console.log('HTML Date:')
       console.log(formatDate(htmlDate), getMomentObject(htmlDate));
@@ -395,7 +395,10 @@ function checkSelectors(article, html) {
         dateElement.innerHTML = stripScripts(dateElement.innerHTML)
         
         const dateString = dateElement.innerText || dateElement.getAttribute('value');
-        const date = getDateFromString(dateString);
+        let date = getDateFromString(dateString);
+        if (date) return date;
+
+        date = checkChildNodes(element);
         if (date) return date;
       }
     }
@@ -417,7 +420,10 @@ function checkSelectors(article, html) {
   if (timeElements && timeElements.length) {
     for (let element of timeElements) {element.getAttribute('datetime') || element.getAttribute('pubdate')
       const dateString = element.getAttribute('datetime') || element.innerText;
-      const date = getDateFromString(dateString);
+      let date = getDateFromString(dateString);
+      if (date) return date;
+
+      date = checkChildNodes(element);
       if (date) return date;
     }
   }
@@ -429,9 +435,27 @@ function checkSelectors(article, html) {
     const elements = article.querySelectorAll(`article ${selector}, .article ${selector}, #article ${selector}, header ${selector}, ${selector}`);
 
     if (elements.length === 1) {
-      const date = getDateFromString(elements[0].innerText);
+      let date = getDateFromString(elements[0].innerText);
+      if (date) return date;
+
+      date = checkChildNodes(elements[0]);
       if (date) return date;
     }
+  }
+
+  return null;
+}
+
+function checkChildNodes(parent) {
+  if (!parent.hasChildNodes()) return null;
+
+  const children = parent.childNodes;
+
+  for (let i = 0; i < children.length; i++) {
+    const text = children[i].textContent.trim();
+    const date = getDateFromString(text);
+
+    if (date) return date;
   }
 
   return null;
