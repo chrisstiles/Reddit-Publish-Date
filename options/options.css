@@ -1,5 +1,4 @@
 /*-----------------------*/
-
 /* General */
 
 * {
@@ -15,7 +14,8 @@ body {
   font-family: 'Roboto', sans-serif;
 }
 
-.clear:after, .input-wrapper:after, .option-wrapper:after {
+.clear:after, .input-wrapper:after, 
+.option-wrapper:after {
   content: "";
   clear: both;
   display: block;
@@ -175,7 +175,6 @@ input[type="text"]:focus {
 }
 
 /*-----------------------*/
-
 /* Option Buttons */
 
 .button-group {
@@ -236,7 +235,6 @@ input[type="text"]:focus {
 }
 
 /*-----------------------*/
-
 /* Date Format */
 
 #date-format-wrapper.disabled {
@@ -280,11 +278,14 @@ input[type="text"]:focus {
   font-weight: 700;
 }
 
-.format-options .heading, .format-options .item {
+.format-options .heading, 
+.format-options .item {
   display: table-row;
 }
 
-.format-options .token, .format-options .example, .format-options .description {
+.format-options .token, 
+.format-options .example, 
+.format-options .description {
   display: table-cell;
   padding: 4px;
   vertical-align: middle;
@@ -324,7 +325,6 @@ input[type="text"]:focus {
 }
 
 /*-----------------------*/
-
 /* Preview */
 
 #preview-wrapper {
@@ -373,30 +373,32 @@ input[type="text"]:focus {
 }
 
 #preview.color:before {
-  box-shadow: 0px 0px 0px 2.5px rgba(87, 212, 135, 0.4);
   background-color: #2ecc71;
 }
 
 #preview.text.color:before {
   content: "";
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   display: inline-block;
-  margin-right: 6px;
-  margin-left: 3px;
+  margin-right: 3px;
+  border:2px solid #fff;
+  box-sizing:content-box;
+  box-shadow: 0px 0px 0px 2px #2ecc71;
+  top: 1px;
   position: relative;
-  top: -2px;
 }
 
 #preview.bubble:before {
   content: "";
   position: absolute;
-  top: -2px;
+  top: -3px;
   bottom: -3px;
-  right: -4px;
-  left: -4px;
+  right: -5px;
+  left: -5px;
   z-index: 1;
+  box-shadow:none;
   border-radius: 2px;
 }
 
@@ -404,15 +406,11 @@ input[type="text"]:focus {
   color: #fff;
 }
 
-#preview.bubble:before {}
-
 #preview.bubble.no-color:before {
-  background-color: #f9f9f9;
-  box-shadow: 0px 0px 0px 1.8px rgba(179, 179, 179, 0.23);
+  background-color: #ececec;
 }
 
 /*-----------------------*/
-
 /* Save */
 
 #save-wrapper {
@@ -424,6 +422,7 @@ input[type="text"]:focus {
   left: 0;
   right: 0;
   height: 55px;
+  ececec
 }
 
 #save {

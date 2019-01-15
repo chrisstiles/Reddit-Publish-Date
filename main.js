@@ -197,15 +197,20 @@
     const publishElement = document.querySelector(`#${selector}`);
 
     if (publishElement) {
-      publishElement.innerHTML = `<span>Published ${date}</span>`;
+      publishElement.innerHTML = `<span class="rpd-color-wrapper"></span><span>Published ${date}</span>`;
       if (cssClasses.length) {
         publishElement.classList.add(...cssClasses);
 
-        // Prevent being flush with RES user tag
         const previousElement = publishElement.previousSibling;
         
-        if (previousElement && previousElement.classList.contains('RESUserTag')) {
-          publishElement.classList.add('after-user-tag');
+        // Unify spacing with previous element  
+        if (previousElement) {
+          previousElement.style.marginRight = '0px';
+
+          // Prevent being flush with RES user tag
+          if (previousElement.classList.contains('RESUserTag')) {
+            publishElement.classList.add('after-user-tag');
+          }
         }
       }
     }
