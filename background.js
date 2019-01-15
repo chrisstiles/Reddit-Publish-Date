@@ -121,7 +121,7 @@ function getArticleHtml(url) {
       return response.text();
     })
     .catch(error => {
-      console.log(error)
+      console.log(error);
     });
 }
 
@@ -129,13 +129,13 @@ function getArticleHtml(url) {
 function getDate(url) {
   getArticleHtml(url).then(html => {
     if (!html) {
-      console.log('No html')
+      console.log('No html');
     }
 
     const htmlDate = getDateFromHTML(html, url);
     
     if (htmlDate) {
-      console.log('HTML Date:')
+      console.log('HTML Date:');
       console.log(formatDate(htmlDate), getMomentObject(htmlDate));
     } else {
       getSnapshot(url)
@@ -334,11 +334,12 @@ function checkMetaData(article) {
   ];
 
   const metaData = article.querySelectorAll('meta');
+  const metaRegex = new RegExp(possibleProperties.join('|'), 'i');
 
   for (let meta of metaData) {
     const property = meta.getAttribute('name') || meta.getAttribute('property') || meta.getAttribute('itemprop') || meta.getAttribute('http-equiv');
     
-    if (property && possibleProperties.includes(property)) {
+    if (property && metaRegex.test(property)) {
       const date = getMomentObject(meta.getAttribute('content'));
       if (date) return date;
     }
