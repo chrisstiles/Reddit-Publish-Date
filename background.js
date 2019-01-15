@@ -376,7 +376,7 @@ function checkSelectors(article, html) {
   }
 
   for (let selector of possibleSelectors) {
-    const selectorString = `[itemprop="${selector}"], [class^="${selector}" i], [id^="${selector}" i]`;
+    const selectorString = `[itemprop^="${selector}" i], [class^="${selector}" i], [id^="${selector}" i]`;
     const elements = article.querySelectorAll(selectorString);
     
     // Loop through elements to see if one is a date
