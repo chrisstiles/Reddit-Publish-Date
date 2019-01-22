@@ -1,7 +1,9 @@
 self.addEventListener('fetch', e => {
   let { headers } = e.request;
 
-  if (headers.get('Reddit-Publish-Date')) {
+  const isRPDRequest = headers.get('Reddit-Publish-Date') === 'true';
+
+  if (isRPDRequest) {
     e.respondWith(fetch(e.request)
       .then(response => {
         const { status, statusText, headers, body } = response;
