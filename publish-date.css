@@ -146,11 +146,16 @@
   box-shadow:none;
   left: 0;
   right: 0;
-  top: -2px;
+  top:-1px;
   bottom: -2px;
   border-radius: 2px;
   position:absolute;
   margin:0;
+}
+
+#siteTable .rpd-bubble .rpd-color-wrapper  {
+  top: -2px;
+  min-height:calc(1em + 4px);
 }
 
 .rpd-bubble.rpd-color {

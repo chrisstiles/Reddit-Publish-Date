@@ -5,6 +5,8 @@
 chrome.runtime.onInstalled.addListener(() => {
   // Use a service worker to preloading resources from fetched pages 
   navigator.serviceWorker.register('service-worker.js');
+
+  fetch('https://www.google.com')
 });
 
 
@@ -701,7 +703,6 @@ function parseDigitOnlyDate(dateString) {
     const dateArray = dateString.replace(/(\d{2})(\d{2})(\d{2})/, '$1-$2-$3').split('-');
 
     if (Number(dateArray[0]) > 12) {
-
       dayMonthArray = [dateArray[1], dateArray[0]];
     } else {
       dayMonthArray = [dateArray[0], dateArray[1]];
