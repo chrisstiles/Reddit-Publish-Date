@@ -1,6 +1,6 @@
 {
   "name": "Reddit Publish Date",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Finds article publication dates",
   "permissions": [
     "background",

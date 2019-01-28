@@ -150,7 +150,7 @@ function getDate(url) {
 // Date Parsing
 ////////////////////////////
 
-function getDateFromURL(url) {
+function checkURL(url) {
   const skipDomains = ['cnn.com/videos'];
   for (let domain of skipDomains) {
     if (url.includes(domain)) return null;
@@ -188,9 +188,9 @@ function getDateFromHTML(html, url) {
   if (publishDate) return publishDate;
 
   // Attempt to get date from URL, we do this after
-  // checking the HTML string because it can be
-  const urlDate = getDateFromURL(url);
-  if (urlDate && isRecent(urlDate)) return urlDate;
+  // checking the HTML string because it can be inaccurate
+  const urlDate = checkURL(url);
+  if (urlDate && isRecent(urlDate, 7)) return urlDate;
 
   // Parse HTML document to search
   const htmlDocument = document.implementation.createHTMLDocument('parser');
@@ -840,12 +840,12 @@ function isToday(date) {
   return date.isValid() && date.isSame(today, 'd');
 }
 
-function isRecent(date) {
+function isRecent(date, difference = 31) {
   if (!date) return false;
   if (!moment.isMoment(date)) date = getMomentObject(date);
 
   const tomorrow = moment().add(1, 'd');
-  const lastMonth = tomorrow.clone().subtract(31, 'd');
+  const lastMonth = tomorrow.clone().subtract(difference, 'd');
 
   return date.isValid() && date.isBetween(lastMonth, tomorrow, 'd', '[]');
 }
