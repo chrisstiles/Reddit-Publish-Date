@@ -106,13 +106,48 @@
       }
     }
 
+    function getElementFromEvent(e) {
+      const elements = e.path;
+      
+      // This main scroller item seems to usually be at position 2
+      if (elements[2].classList.contains('scrollerItem')) {
+        return elements[2];
+      }
+
+      // Loop through 
+    }
+
     function updateListingPage(e) {
       const { id, sourceUrl: url, media } = e.detail.data;
       if (!id) return;
 
       if (shouldCheckURL(url, media)) {
-        const postElement = document.querySelector(`#${id}`);
-        updatePost(id, url, postElement);
+        // Find the element using the event data or querying the ID
+        const elements = e.path;
+
+        // This main scroller item seems to usually be at position 2
+        if (elements[2].classList.contains('scrollerItem')) {
+          updatePost(id, url, elements[2]);
+          return;
+        }
+
+        // Next try simply querying for the ID. Promoted posts
+        // have long IDs that will throw an error, so avoid those
+        if (id.length <= 20) {
+          const postElement = document.querySelector(`#${id}`);
+          if (postElement) updatePost(id, url, postElement);
+          return;
+        }
+
+        // Finally try looping through the path to find the post element
+        for (let i = 0; i < elements.length; i++) {
+          const element = elements[i];
+
+          if (element instanceof Element && element.classList.contains('scrollerItem')) {
+            updatePost(id, url, element);
+            return;
+          }
+        }
       }
     }
 
