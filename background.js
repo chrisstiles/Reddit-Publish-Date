@@ -5,8 +5,6 @@
 chrome.runtime.onInstalled.addListener(() => {
   // Use a service worker to preloading resources from fetched pages 
   navigator.serviceWorker.register('service-worker.js');
-
-  fetch('https://www.google.com')
 });
 
 
