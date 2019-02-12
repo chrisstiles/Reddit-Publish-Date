@@ -105,18 +105,7 @@
         savedElements = [];
       }
     }
-
-    function getElementFromEvent(e) {
-      const elements = e.path;
-      
-      // This main scroller item seems to usually be at position 2
-      if (elements[2].classList.contains('scrollerItem')) {
-        return elements[2];
-      }
-
-      // Loop through 
-    }
-
+    
     function updateListingPage(e) {
       const { id, sourceUrl: url, media } = e.detail.data;
       if (!id) return;
