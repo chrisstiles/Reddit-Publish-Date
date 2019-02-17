@@ -1,7 +1,7 @@
 {
   "name": "Reddit Publish Date",
-  "version": "1.0.3",
-  "description": "Finds article publication dates",
+  "version": "1.0.4",
+  "description": "Adds article publish dates to Reddit links.",
   "permissions": [
     "background",
     "storage",
@@ -71,7 +71,6 @@
   },
   "web_accessible_resources": [
     "main.js",
-    "format-date.js",
     "background.js",
     "publish-date.css"
   ]
