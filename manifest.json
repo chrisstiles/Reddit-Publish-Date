@@ -1,6 +1,6 @@
 {
   "name": "Reddit Publish Date",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Adds article publish dates to Reddit links.",
   "permissions": [
     "background",

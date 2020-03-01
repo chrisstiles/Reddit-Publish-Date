@@ -228,7 +228,7 @@ function checkHTMLString(html, url) {
   // Certain websites include JSON data for other posts
   // We don't attempt to parse the date from the HTML on these
   // sites to prevent the wrong date being found
-  const skipDomains = ['talkingpointsmemo.com'];
+  const skipDomains = ['talkingpointsmemo.com', 'thersa.org'];
   for (let domain of skipDomains) {
     if (url.includes(domain)) return null;
   }
@@ -419,7 +419,7 @@ function checkSelectors(article, html) {
   // Check for time elements that might be publication date
   const timeElements = article.querySelectorAll('article time[datetime], time[pubdate]');
   if (timeElements && timeElements.length) {
-    for (let element of timeElements) {element.getAttribute('datetime') || element.getAttribute('pubdate')
+    for (let element of timeElements) {
       const dateString = element.getAttribute('datetime') || element.innerText;
       let date = getDateFromString(dateString);
       if (date) return date;
