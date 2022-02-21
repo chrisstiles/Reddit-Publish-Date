@@ -86,123 +86,120 @@ import './client.scss';
     document.addEventListener('reddit.urlChanged', handleUrlChanged, true);
 
     function handleRedditEvent(e) {
-      const { type } = e.detail;
-
-      if (type === 'post') {
-        methods.updateListingPage(e);
-      } else if (isCommentsPage && type === 'postAuthor') {
-        // The 'post' event type doesn't run on comment
-        // pages that aren't viewed in the modal window.
-        // Instead we use the postAuthor type to know when the post has been added
-        methods.updateCommentsPage(e);
+      if (e.detail.type === 'post') {
+        if (isCommentsPage) {
+          methods.updateCommentsPage(e);
+        } else {
+          methods.updateListingPage(e);
+        }
       }
     }
-
-    methods.updateListingPage = e => {
-      const { id, sourceUrl: url, media } = e.detail.data;
-      if (!id) return;
-
-      if (shouldCheckURL(url, media)) {
-        // Find the element using the event data or querying the ID
-        const elements = e.path;
-
-        // This main scroller item seems to usually be at position 2
-        if (elements[2].classList.contains('scrollerItem')) {
-          methods.updatePost(e, elements[2]);
-          return;
-        }
-
-        // Next try simply querying for the ID. Promoted posts
-        // have long IDs that will throw an error, so avoid those
-        if (id.length <= 20) {
-          const postElement = document.querySelector(`#${id}`);
-
-          if (postElement) {
-            methods.updatePost(e, postElement);
-          }
-
-          return;
-        }
-
-        // Finally try looping through the path to find the post element
-        for (let i = 0; i < elements.length; i++) {
-          const element = elements[i];
-
-          if (
-            element instanceof Element &&
-            element.classList.contains('scrollerItem')
-          ) {
-            methods.updatePost(e, element);
-
-            return;
-          }
-        }
-      }
-    };
-
-    const getTimestampEl = (wrapper, id, sub) => {
-      const selectors = [id.replace(/^[^_]*_/, ''), id]
-        .map(postPath => `a[href*="${sub}/comments/${postPath}" i]`)
-        .join(', ');
-
-      const commentLinks = wrapper.querySelectorAll(selectors);
-
-      return (
-        Array.from(commentLinks).find(el => {
-          return (
-            el.dataset.clickId === 'timestamp' || el.outerHTML.includes('time')
-          );
-        }) ??
-        commentLinks[0] ??
-        null
-      );
-    };
-
-    methods.updateCommentsPage = e => {
-      const { id } = e.detail.data.post;
-      const { name: sub } = e.detail.data.subreddit;
-
-      if (!id || !sub) {
-        return;
-      }
-
-      const wrapper =
-        e.path?.find?.(el => el.id === id) ??
-        document.querySelector(`#overlayScrollContainer #${id}`) ??
-        document.querySelector(`#${id}`);
-
-      if (wrapper && !wrapper.hasAttribute('data-checked-date')) {
-        methods.updatePost(e, wrapper);
-      }
-    };
 
     function handleUrlChanged(e) {
       isCommentsPage = e.detail.location.pathname.includes('comments');
     }
 
-    methods.updatePost = (e, postElement) => {
-      const id = e.detail.data.post?.id ?? e.detail.data.id;
-      const { name: sub } = e.detail.data.subreddit;
+    function getEventData(e = {}) {
+      const { id, sourceUrl: url, media } = e?.detail?.data ?? {};
+      const subreddit = e?.detail?.data?.subreddit ?? {};
 
-      if (!id || !sub) {
+      return { id, url, media, sub: subreddit.name };
+    }
+
+    function getTimestampEl(wrapper, id, sub) {
+      const selectors = [id.replace(/^[^_]*_/, ''), id]
+        .map(postPath => `a[href*="${sub}/comments/${postPath}" i]`)
+        .join(', ');
+
+      const commentLinks = Array.from(wrapper.querySelectorAll(selectors));
+
+      return (
+        commentLinks.find(el => el.dataset.clickId === 'timestamp') ??
+        commentLinks.find(el => el.outerHTML.includes('time')) ??
+        commentLinks[0] ??
+        null
+      );
+    }
+
+    methods.updateListingPage = e => {
+      const { id, url, media } = getEventData(e);
+
+      if (!id || !shouldCheckURL(url, media)) {
         return;
       }
 
-      if (postElement) {
-        if (postElement.hasAttribute('data-checked-date')) {
+      // Find the element using the event data or querying the ID
+      const elements = e.path;
+
+      // This main scroller item seems to usually be at position 2
+      if (elements[2].classList.contains('scrollerItem')) {
+        methods.updatePost(e, elements[2]);
+        return;
+      }
+
+      // Next try simply querying for the ID. Promoted posts
+      // have long IDs that will throw an error, so avoid those
+      if (id.length <= 20) {
+        const postElement = document.querySelector(`#${id}`);
+
+        if (postElement) {
+          methods.updatePost(e, postElement);
+        }
+
+        return;
+      }
+
+      // Finally try looping through the path to find the post element
+      for (let i = 0; i < elements.length; i++) {
+        const element = elements[i];
+
+        if (
+          element instanceof Element &&
+          element.classList.contains('scrollerItem')
+        ) {
+          methods.updatePost(e, element);
+
           return;
         }
+      }
+    };
 
-        postElement.setAttribute('data-checked-date', 'true');
+    methods.updateCommentsPage = e => {
+      const { id, url, media } = getEventData(e);
 
-        const timestampEl = getTimestampEl(postElement, id, sub);
-        const url =
-          e.detail.data.permalink ?? timestampEl?.getAttribute('href');
+      if (!id || !shouldCheckURL(url, media)) {
+        return;
+      }
 
-        if (timestampEl && url) {
-          createDateWrapper(id, timestampEl);
-          getPublishedDate(id, url);
-        }
+      const element =
+        e.path?.find?.(el => el.id === id) ??
+        document.querySelector(`#overlayScrollContainer #${id}`) ??
+        document.querySelector(`#${id}:not(.scrollerItem)`);
+
+      if (element) {
+        methods.updatePost(e, element);
+      }
+    };
+
+    methods.updatePost = (e, postElement) => {
+      const { id, url, sub } = getEventData(e);
+
+      if (
+        !id ||
+        !sub ||
+        !postElement ||
+        postElement.hasAttribute('data-checked-date')
+      ) {
+        return;
+      }
+
+      postElement.setAttribute('data-checked-date', 'true');
+
+      const timestampEl = getTimestampEl(postElement, id, sub);
+
+      if (timestampEl && url) {
+        createDateWrapper(id, timestampEl);
+        getPublishedDate(id, url);
       }
     };
   }

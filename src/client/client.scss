@@ -6,25 +6,54 @@
   position: relative;
   z-index: 1;
   margin: 0 calc(0.6em - 1px);
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  font-size: 0.95em;
+
+  &:before {
+    box-sizing: content-box;
+  }
+
+  &.rpd-future,
+  &.rpd-invalid {
+    display: none;
+  }
+
+  &.old-reddit {
+    font-family: 'Helvetica Neue', 'Helvetica', sans-serif;
+    font-weight: 500 !important;
+  }
+
+  &.rpd-bold {
+    span {
+      font-weight: 600 !important;
+    }
+  }
+
+  span {
+    position: relative;
+    z-index: 200;
+  }
 }
 
-.rpd-publish-date:before {
-  box-sizing: content-box;
-}
+// .rpd-publish-date:before {
 
-.rpd-publish-date.rpd-future,
-.rpd-publish-date.rpd-invalid {
-  display: none;
-}
+// }
 
-.rpd-publish-date.rpd-bold span {
-  font-weight: 600 !important;
-}
+// .rpd-publish-date.rpd-future,
+// .rpd-publish-date.rpd-invalid {
+//   display: none;
+// }
 
-.rpd-publish-date span {
-  position: relative;
-  z-index: 200;
-}
+// .rpd-publish-date.rpd-bold span {
+//   font-weight: 600 !important;
+// }
+
+// .rpd-publish-date span {
+//   position: relative;
+//   z-index: 200;
+// }
 
 .rpd-color-wrapper {
   z-index: 100 !important;
@@ -43,92 +72,63 @@
 /*-----------------------*/
 /* Colors */
 
+$colors: #2ecc71, #1abc9c, #f1c40f, #f39c12, #e67e22, #d35400, #e74c3c, #c0392b;
+
 .rpd-color-wrapper {
   pointer-events: none;
-}
 
-/* Today or yesterday */
-.rpd-1 .rpd-color-wrapper {
-  box-shadow: 0 0 0 calc(0.23em - 1px) #2ecc71;
-  background-color: #2ecc71;
-}
+  $num: 1;
 
-/* 2 days - 1 week */
-.rpd-2 .rpd-color-wrapper {
-  box-shadow: 0 0 0 calc(0.23em - 1px) #1abc9c;
-  background-color: #1abc9c;
-}
+  @each $color in $colors {
+    @at-root .rpd-#{$num} & {
+      box-shadow: 0 0 0 calc(0.23em - 1px) $color;
+      background-color: $color;
+    }
 
-/* 1 week - 2 weeks */
-.rpd-3 .rpd-color-wrapper {
-  box-shadow: 0 0 0 calc(0.23em - 1px) #f1c40f;
-  background-color: #f1c40f;
-}
-
-/* 2 weeks - 1 month */
-.rpd-4 .rpd-color-wrapper {
-  box-shadow: 0 0 0 calc(0.23em - 1px) #f39c12;
-  background-color: #f39c12;
-}
-
-/* 1 month - 3 months */
-.rpd-5 .rpd-color-wrapper {
-  box-shadow: 0 0 0 calc(0.23em - 1px) #e67e22;
-  background-color: #e67e22;
-}
-
-/* 3 months - 6 months */
-.rpd-6 .rpd-color-wrapper {
-  box-shadow: 0 0 0 calc(0.23em - 1px) #d35400;
-  background-color: #d35400;
-}
-
-/* 6 months - 1 year */
-.rpd-7 .rpd-color-wrapper {
-  box-shadow: 0 0 0 calc(0.23em - 1px) #e74c3c;
-  background-color: #e74c3c;
-}
-
-/* More than a year old */
-.rpd-8 .rpd-color-wrapper {
-  box-shadow: 0 0 0 calc(0.23em - 1px) #c0392b;
-  background-color: #c0392b;
+    $num: $num + 1;
+  }
 }
 
 /*-----------------------*/
 /* Text Dates */
 
-.rpd-text.rpd-no-color {
-  margin-left: 0;
-}
+.rpd-text {
+  &.new-reddit {
+    top: 1px;
+  }
 
-.rpd-text.rpd-no-color:before {
-  content: ' | ';
-}
+  &.rpd-no-color {
+    margin-left: 0;
 
-.rpd-text.rpd-no-color .rpd-color-wrapper {
-  display: none !important;
-}
+    &:before {
+      content: ' | ';
+    }
 
-.rpd-text .rpd-color-wrapper {
-  width: calc(1em - 2px);
-  height: calc(1em - 2px);
-  margin-right: 0.4em;
-  border-radius: 50%;
-  display: inline-block;
-  box-sizing: border-box;
-}
+    .rpd-color-wrapper {
+      display: none !important;
+    }
+  }
 
-.rpd-text .rpd-color-wrapper:before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  border-radius: 50%;
-  box-sizing: border-box;
-  box-shadow: inset 0 0 0 calc(0.23em - 1px) #fff;
+  .rpd-color-wrapper {
+    width: calc(1em - 2px);
+    height: calc(1em - 2px);
+    margin-right: 0.45em;
+    border-radius: 50%;
+    display: inline-block;
+    box-sizing: border-box;
+
+    &:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      border-radius: 50%;
+      box-sizing: border-box;
+      box-shadow: inset 0 0 0 calc(0.23em - 1px) #fff;
+    }
+  }
 }
 
 #siteTable .rpd-text.rpd-no-color.after-user-tag:before {
@@ -139,50 +139,57 @@
 /* Bubble Dates */
 
 .rpd-bubble {
-  padding: 0 4px;
+  padding: 0.33em 0.4em 0.3em 0.4em;
   font-size: 0.9em;
-}
 
-.rpd-bubble .rpd-color-wrapper {
-  box-shadow: none;
-  left: 0;
-  right: 0;
-  top: -1px;
-  bottom: -2px;
-  border-radius: 2px;
-  position: absolute;
-  margin: 0;
-}
+  .rpd-color-wrapper {
+    box-shadow: none;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 2px;
+    position: absolute;
+    margin: 0;
+  }
 
-#siteTable .rpd-bubble .rpd-color-wrapper {
-  top: -2px;
-  min-height: calc(1em + 4px);
-}
+  &.old-reddit {
+    font-size: 0.95em;
+    padding: 0 0.4em;
 
-.rpd-bubble.rpd-color {
-  color: #fff !important;
-}
+    .rpd-color-wrapper {
+      top: -2px;
+      bottom: -3px;
+    }
+  }
 
-.rpd-bubble.rpd-no-color {
-  color: #5a5a5a !important;
-}
+  &.rpd-color {
+    color: #fff !important;
+  }
 
-.rpd-bubble.rpd-no-color .rpd-color-wrapper {
-  background-color: #ececec;
+  &.rpd-no-color {
+    color: #5a5a5a !important;
+
+    .rpd-color-wrapper {
+      background-color: #ececec;
+    }
+  }
 }
 
 /*-----------------------*/
 /* Estimated Dates */
 
-.rpd-estimate.rpd-bubble {
-  opacity: 0.7;
-}
+.rpd-estimate {
+  .rpd-bubble {
+    opacity: 0.7;
+  }
 
-.rpd-estimate span:after {
-  content: ' (estimate)';
-  opacity: 0.95;
-}
+  span:after {
+    content: ' (estimate)';
+    opacity: 0.95;
+  }
 
-.rpd-estimate.rpd-text span:after {
-  opacity: 0.8;
+  &.rpd-text span:after {
+    opacity: 0.8;
+  }
 }
