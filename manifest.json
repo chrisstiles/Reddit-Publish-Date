@@ -1,13 +1,9 @@
 {
   "name": "Reddit Publish Date",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "description": "Adds article publish dates to Reddit links.",
-  "permissions": [
-    "background",
-    "storage",
-    "https://*/",
-    "http://*/"
-  ],
+  "permissions": ["background", "storage"],
+  "host_permissions": ["https://*/", "http://*/"],
   "icons": {
     "16": "icons/icon-16.png",
     "19": "icons/icon-19.png",
@@ -16,23 +12,17 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  "manifest_version": 2,
+  "manifest_version": 3,
   "options_ui": {
-    "page": "options/options.html",
+    "page": "options.html",
     "open_in_tab": false
   },
   "background": {
-    "scripts": [
-      "vendor/moment.js",
-      "background.js"
-    ],
-    "persistent": false
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://*.reddit.com/*"
-      ],
+      "matches": ["https://*.reddit.com/*"],
       "exclude_matches": [
         "https://*.reddit.com/r/*/submit",
         "https://*.reddit.com/r/*/wiki",
@@ -58,20 +48,17 @@
         "https://*.reddit.com/*.json-html?*"
       ],
       "runs_at": "document_end",
-      "js": [
-        "main.js"
-      ],
-      "css": [
-        "publish-date.css"
-      ]
+      "js": ["client.js"],
+      "css": ["client.css"]
     }
   ],
-  "page_action": {
+  "action": {
     "default_title": "Reddit Publish Date"
   },
   "web_accessible_resources": [
-    "main.js",
-    "background.js",
-    "publish-date.css"
+    {
+      "resources": ["client.js", "client.css", "background.js"],
+      "matches": ["https://*.reddit.com/*"]
+    }
   ]
 }

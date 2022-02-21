@@ -1,0 +1,22 @@
+{
+  "env": {
+    "es6": true,
+    "browser": true,
+    "node": true
+  },
+  "parser": "@babel/eslint-parser",
+  "parserOptions": {
+    "ecmaVersion": 2018,
+    "sourceType": "module"
+  },
+  "globals": {
+    "chrome": "readonly"
+  },
+  "plugins": ["@babel", "prettier"],
+  "rules": {
+    "no-unused-expressions": 0,
+    "babel/no-unused-expressions": 0,
+    "import/no-webpack-loader-syntax": 0,
+    "import/no-anonymous-default-export": 0
+  }
+}
