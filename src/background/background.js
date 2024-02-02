@@ -34,7 +34,17 @@ chrome.runtime.onMessage.addListener((request = {}, sender) => {
   }
 });
 
+let hasUpdatedData = false;
+
 async function getDateFromPage(postId, url, tabId) {
+  if (!hasUpdatedData) {
+    hasUpdatedData = true;
+
+    const res = await fetch('https://www.redditpublishdate.com/api/data');
+    const json = await res.json();
+    console.log(json);
+  }
+
   try {
     const date = (await getPublishDate(url))?.publishDate;
 
