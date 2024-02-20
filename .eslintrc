@@ -10,13 +10,15 @@
     "sourceType": "module"
   },
   "globals": {
-    "chrome": "readonly"
+    "chrome": "readonly",
+    "globalThis": "readonly"
   },
   "plugins": ["@babel", "prettier"],
   "rules": {
-    "no-unused-expressions": 0,
-    "babel/no-unused-expressions": 0,
-    "import/no-webpack-loader-syntax": 0,
-    "import/no-anonymous-default-export": 0
+    "no-unused-expressions": "off",
+    "babel/no-unused-expressions": "off",
+    "import/no-webpack-loader-syntax": "off",
+    "import/no-anonymous-default-export": "off",
+    "no-undef": "error"
   }
 }

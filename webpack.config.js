@@ -10,6 +10,7 @@ const openBrowser = require('react-dev-utils/openBrowser');
 module.exports = (env, argv) => {
   const isDev = argv.mode === 'development';
   const isProd = argv.mode === 'production';
+  const isDebug = env.debug === 'true';
   const minimize = true;
 
   return {
@@ -70,17 +71,20 @@ module.exports = (env, argv) => {
     ].filter(Boolean),
     devtool: false,
     optimization: {
-      minimize: true,
+      // minimize: false,
+      minimize: isProd && !isDebug,
       usedExports: true,
       minimizer: [
-        new TerserWebpackPlugin({
-          extractComments: false,
-          terserOptions: {
-            mangle: minimize,
-            compress: minimize
-          }
-        })
-      ]
+        isProd &&
+          !isDebug &&
+          new TerserWebpackPlugin({
+            extractComments: false,
+            terserOptions: {
+              mangle: minimize,
+              compress: minimize
+            }
+          })
+      ].filter(Boolean)
     },
     devServer: {
       hot: false,

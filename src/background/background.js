@@ -367,8 +367,6 @@ chrome.runtime.onMessage.addListener((request = {}) => {
   if (type === 'options-changed') {
     options = Object.assign({}, DEFAULT_OPTIONS, savedOptions);
   }
-
-  return true;
 });
 
 moment.suppressDeprecationWarnings = true;
