@@ -47,10 +47,6 @@
   z-index: 200;
 }
 
-#siteTable *[data-checked-date='true'] .author {
-  margin-right: 0.5em;
-}
-
 /*-----------------------*/
 /* Colors */
 
@@ -111,6 +107,38 @@ $colors: #2ecc71, #1abc9c, #f1c40f, #f39c12, #e67e22, #d35400, #e74c3c, #c0392b;
       box-shadow: inset 0 0 0 calc(0.23em - 1px) #fff;
     }
   }
+
+  &.old-reddit {
+    &.rpd-no-color {
+      &:before {
+        margin: 0 0.5em;
+      }
+    }
+  }
+
+  &.reddit-redesign-2 {
+    &.rpd-no-color {
+      top: 0.05em;
+
+      &:before {
+        margin: 0 0.5em 0 0.1em;
+        content: '';
+        width: 1px;
+        height: 0.95em;
+        background-color: var(--color-divider-default, currentColor);
+        position: relative;
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .rpd-color-wrapper {
+        &:before {
+          box-shadow: inset 0 0 0 calc(0.23em - 1px)
+            var(--color-neutral-background, #0b1416);
+        }
+      }
+    }
+  }
 }
 
 #siteTable .rpd-text.rpd-no-color.after-user-tag:before {
@@ -154,6 +182,22 @@ $colors: #2ecc71, #1abc9c, #f1c40f, #f39c12, #e67e22, #d35400, #e74c3c, #c0392b;
 
     .rpd-color-wrapper {
       background-color: #ececec;
+    }
+
+    &.reddit-redesign-2 {
+      top: 0.05em;
+
+      .rpd-color-wrapper {
+        background-color: var(--color-secondary-background, #ebedef);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        color: #fff !important;
+
+        .rpd-color-wrapper {
+          background-color: var(--color-secondary-background, #1a282e);
+        }
+      }
     }
   }
 }
