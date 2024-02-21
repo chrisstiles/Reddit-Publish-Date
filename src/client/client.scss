@@ -15,6 +15,10 @@
     box-sizing: content-box;
   }
 
+  &.empty {
+    display: none;
+  }
+
   &.rpd-future,
   &.rpd-invalid {
     display: none;

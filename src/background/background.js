@@ -1,6 +1,14 @@
-import getPublishDate, { getMomentObject } from './get-publish-date';
+import getPublishDate from './get-publish-date';
+import { getMomentObject } from './date-helpers';
+import * as defaultDataConfig from './data';
 import moment from 'moment';
-import { MAX_CACHED_DATES, DEFAULT_OPTIONS } from '@constants';
+import {
+  MAX_CACHED_DATES,
+  DEFAULT_OPTIONS,
+  CACHE_DATA_CONFIG_DAYS,
+  CONFIG_FETCH_RETRY_MS,
+  MAX_CONFIG_FETCH_RETRIES
+} from '@constants';
 
 ////////////////////////////
 // Find publish dates for posts
@@ -25,37 +33,117 @@ chrome.runtime.onMessage.addListener((request = {}, sender) => {
         }
 
         sendDateMessage(tabId, postId, dateString, isEstimate);
-
         return;
       }
 
-      getDateFromPage(postId, url, tabId);
+      getDateForPost(postId, url, tabId);
     });
   }
 });
 
-let hasUpdatedData = false;
-
-async function getDateFromPage(postId, url, tabId) {
-  if (!hasUpdatedData) {
-    hasUpdatedData = true;
-
-    const res = await fetch('https://www.redditpublishdate.com/api/data');
-    const json = await res.json();
-    console.log(json);
-  }
+async function getDateForPost(postId, url, tabId) {
+  const dataConfig = await getDataConfig();
 
   try {
-    const date = (await getPublishDate(url))?.publishDate;
+    const date = (await getPublishDate(url, false, dataConfig))?.publishDate;
 
     // Publish date was successfully found,
     // send to client script and cache result
-    if (date) {
-      handleDateFound(tabId, postId, date);
-    }
+    if (date) handleDateFound(tabId, postId, date);
   } catch (error) {
     console.error(error);
   }
+}
+
+let cachedDataConfig = null;
+let hasFailedFetchingConfig = false;
+let configFetchFailedTimer;
+let configFetchFailedCount = 0;
+let configFetchPromise = null;
+
+async function getDataConfig() {
+  try {
+    if (!cachedDataConfig) {
+      const { dataConfig } = await chrome.storage.local.get('dataConfig');
+
+      cachedDataConfig = typeof dataConfig === 'object' ? dataConfig : {};
+    }
+
+    const timestamp = moment(cachedDataConfig.timestamp);
+
+    if (
+      cachedDataConfig.config &&
+      timestamp.isValid() &&
+      moment().diff(timestamp, 'd') < CACHE_DATA_CONFIG_DAYS
+    ) {
+      return cachedDataConfig.config;
+    }
+
+    if (
+      hasFailedFetchingConfig ||
+      configFetchFailedCount >= MAX_CONFIG_FETCH_RETRIES
+    ) {
+      return defaultDataConfig;
+    }
+
+    return await fetchDataConfig();
+  } catch (error) {
+    console.error('Errer getting data config:', error);
+    return defaultDataConfig;
+  }
+}
+
+function fetchDataConfig() {
+  if (configFetchPromise) return configFetchPromise;
+
+  configFetchPromise = new Promise(async resolve => {
+    try {
+      const res = await fetch('https://www.redditpublishdate.com/api/data');
+
+      if (!res.ok) {
+        console.error('Failed to fetch data config', res.status);
+        handleConfigFetchError();
+        return resolve(defaultDataConfig);
+      }
+
+      const config = await res.json();
+
+      if (!config) {
+        console.error('Invalid data config response');
+        handleConfigFetchError();
+        return resolve(defaultDataConfig);
+      }
+
+      hasFailedFetchingConfig = false;
+      configFetchFailedCount = 0;
+      cachedDataConfig = { config, timestamp: new Date().toISOString() };
+
+      await chrome.storage.local.set({ dataConfig: cachedDataConfig });
+
+      configFetchPromise = null;
+
+      resolve(config);
+    } catch (error) {
+      console.error('Errer fetching data config:', error);
+
+      handleConfigFetchError();
+      resolve(defaultDataConfig);
+    }
+  });
+
+  return configFetchPromise;
+}
+
+function handleConfigFetchError() {
+  clearTimeout(configFetchFailedTimer);
+
+  configFetchFailedCount++;
+  hasFailedFetchingConfig = true;
+  configFetchPromise = null;
+
+  configFetchFailedTimer = setTimeout(() => {
+    hasFailedFetchingConfig = false;
+  }, CONFIG_FETCH_RETRY_MS);
 }
 
 // Send date back to client script

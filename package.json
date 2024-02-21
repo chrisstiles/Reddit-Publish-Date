@@ -1,6 +1,6 @@
 {
   "name": "reddit-publish-date",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Adds article publish dates to Reddit links.",
   "main": "src/client/client.js",
   "scripts": {
@@ -41,6 +41,7 @@
     "@babel/eslint-parser": "^7.17.0",
     "@babel/eslint-plugin": "^7.16.5",
     "@babel/preset-env": "^7.16.11",
+    "@types/chrome": "^0.0.260",
     "babel": "^6.23.0",
     "babel-eslint": "^10.1.0",
     "babel-loader": "^8.2.3",

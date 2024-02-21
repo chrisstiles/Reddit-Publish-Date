@@ -1,6 +1,6 @@
 {
   "name": "Reddit Publish Date",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Adds article publish dates to Reddit links.",
   "permissions": ["background", "storage"],
   "host_permissions": ["https://*/", "http://*/"],

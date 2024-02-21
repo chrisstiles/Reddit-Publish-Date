@@ -22,7 +22,6 @@ export async function getRedditVersion(retryDelay = 1000, maxRetries = 5) {
   let version = getVersion();
 
   while (version === 'unknown' && retryCount < maxRetries) {
-    console.log('Retrying', retryCount + 1);
     await sleep(retryDelay);
     version = getVersion();
     retryCount++;
