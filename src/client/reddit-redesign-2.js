@@ -5,6 +5,7 @@ import {
   shouldCheckURL,
   setPostAsSeen
 } from './helpers';
+import { redditVersions } from '@constants';
 
 const allowedRoutes = ['frontpage', 'subreddit', 'post_page'];
 
@@ -49,6 +50,6 @@ function updatePost(post) {
   const prevElement = post.querySelector('faceplate-timeago');
   if (!prevElement) return;
 
-  createDateWrapper(postId, prevElement, 'reddit-redesign-2');
+  createDateWrapper(postId, prevElement, redditVersions.REDDIT_REDESIGN_2);
   getDateForPost(postId, url);
 }

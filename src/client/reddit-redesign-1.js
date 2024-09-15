@@ -5,6 +5,7 @@ import {
   createDateWrapper,
   shouldCheckURL
 } from './helpers';
+import { redditVersions } from '@constants';
 
 let isCommentsPage = isInitialCommentsPage();
 
@@ -31,7 +32,7 @@ function updatePost(e, postElement) {
   const timestampEl = getTimestampEl(postElement, id, sub);
 
   if (timestampEl && url) {
-    createDateWrapper(id, timestampEl, 'reddit-redesign-1');
+    createDateWrapper(id, timestampEl, redditVersions.REDDIT_REDESIGN_1);
     getDateForPost(id, url);
   }
 }

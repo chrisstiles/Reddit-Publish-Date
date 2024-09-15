@@ -4,6 +4,7 @@ import {
   createDateWrapper,
   shouldCheckURL
 } from './helpers';
+import { redditVersions } from '@constants';
 
 export default function init() {
   updatePage();
@@ -44,7 +45,7 @@ function updatePost(postId, url, postElement) {
     const author = postElement.querySelector('.author');
 
     if (author) {
-      createDateWrapper(postId, author, 'old-reddit');
+      createDateWrapper(postId, author, redditVersions.OLD_REDDIT);
       getDateForPost(postId, url);
     }
   }

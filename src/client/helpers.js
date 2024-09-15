@@ -1,21 +1,23 @@
+import { redditVersions } from '@constants';
+
 export async function getRedditVersion(retryDelay = 1000, maxRetries = 5) {
   const getVersion = () => {
     if (document.querySelector('shreddit-app')) {
-      return 'reddit-redesign-2';
+      return redditVersions.REDDIT_REDESIGN_2;
     }
 
     if (
       window.location.hostname === 'old.reddit.com' ||
       !!document.documentElement.getAttribute('xmlns')
     ) {
-      return 'old-reddit';
+      return redditVersions.OLD_REDDIT;
     }
 
     if (document.querySelector('meta[name="jsapi"]')) {
-      return 'reddit-redesign-1';
+      return redditVersions.REDDIT_REDESIGN_1;
     }
 
-    return 'unknown';
+    return redditVersions.UNKNOWN;
   };
 
   let retryCount = 0;

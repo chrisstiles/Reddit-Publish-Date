@@ -6,6 +6,8 @@ import { isPlainObject } from 'lodash';
 (() => {
   let options = {};
   let date = moment().subtract(2, 'd');
+  let hasChangedDateFormat = false;
+  let shouldDeleteSavedDateFormat = false;
 
   async function refreshPage(newOptions) {
     setExampleDates();
@@ -34,7 +36,7 @@ import { isPlainObject } from 'lodash';
     setDateFormatExamples();
 
     const dateWrapper = document.querySelector('#date-type .date-text');
-    dateWrapper.innerText = date.format('M/D/YY');
+    dateWrapper.innerText = date.format(DEFAULT_OPTIONS.dateFormat);
 
     const relativeWrapper = document.querySelector('#date-type .relative-text');
     relativeWrapper.innerText = date.fromNow();
@@ -87,13 +89,19 @@ import { isPlainObject } from 'lodash';
   }
 
   document.querySelector('#reset-format').addEventListener('click', () => {
-    const defaultFormat = 'M/D/YY';
+    hasChangedDateFormat = false;
+    shouldDeleteSavedDateFormat = true;
+
+    const defaultFormat = DEFAULT_OPTIONS.dateFormat;
     options.dateFormat = defaultFormat;
     setDateFormatInput(defaultFormat);
     updatePreview();
   });
 
   document.querySelector('#date-format').addEventListener('input', e => {
+    hasChangedDateFormat = true;
+    shouldDeleteSavedDateFormat = false;
+
     options.dateFormat = e.target.value;
     updatePreview();
   });
@@ -163,7 +171,15 @@ import { isPlainObject } from 'lodash';
   }
 
   async function saveOptions() {
-    const newOptions = { ...options };
+    const newOptions = { ...options, shouldDeleteSavedDateFormat };
+
+    if (newOptions.dateType === 'relative' || !hasChangedDateFormat) {
+      delete newOptions.dateFormat;
+    }
+
+    if (shouldDeleteSavedDateFormat) {
+      await chrome.storage.sync.remove('dateFormat');
+    }
 
     await chrome.storage.sync.set(newOptions);
     await chrome.runtime.sendMessage(

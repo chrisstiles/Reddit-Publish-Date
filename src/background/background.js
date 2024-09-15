@@ -183,6 +183,7 @@ async function sendDateMessage(tabId, postId, date, isEstimate) {
     }
 
     data.cssClasses = cssClasses;
+
     chrome.tabs.sendMessage(tabId, data);
   }
 }
@@ -378,9 +379,7 @@ function startCacheTimer() {
     chrome.storage.local.set(cache, () => {
       const error = chrome.runtime.lastError;
 
-      if (error) {
-        console.log(error.message);
-      }
+      if (error) console.error(error.message);
 
       if (
         cachedIds.length >= MAX_CACHED_DATES ||
@@ -412,15 +411,11 @@ function clearCache() {
     cache = { cachedIds };
     hasLoadedCachedIds = false;
 
-    let error = chrome.runtime.lastError;
-
-    if (error) {
-      console.error(error);
+    if (chrome.runtime.lastError) {
+      console.error(chrome.runtime.lastError);
     }
   });
 }
-
-globalThis.clearExtensionCache = clearCache;
 
 ////////////////////////////
 // Extension Options
@@ -429,31 +424,93 @@ globalThis.clearExtensionCache = clearCache;
 let options = null;
 
 async function getOptions() {
+  const baseOptions = Object.assign({}, DEFAULT_OPTIONS);
+  delete baseOptions.dateFormat;
+
   if (options) {
-    return Promise.resolve(Object.assign({}, DEFAULT_OPTIONS, options));
+    const clonedOptions = Object.create(
+      Object.getPrototypeOf(options),
+      Object.getOwnPropertyDescriptors(options)
+    );
+
+    Object.keys(baseOptions).forEach(key => {
+      if (!(key in clonedOptions)) {
+        clonedOptions[key] = baseOptions[key];
+      }
+    });
+
+    if (!clonedOptions.dateFormat) {
+      Object.defineProperty(clonedOptions, 'dateFormat', {
+        enumerable: true,
+        configurable: true,
+        get() {
+          return DEFAULT_OPTIONS.dateFormat;
+        }
+      });
+    }
+
+    return clonedOptions;
   }
 
-  return new Promise(resolve => {
-    chrome.storage.sync.get(DEFAULT_OPTIONS, savedOptions => {
-      if (chrome.runtime.lastError) {
-        console.error(chrome.runtime.lastError);
-        return resolve(DEFAULT_OPTIONS);
+  try {
+    const savedOptions = await chrome.storage.sync.get(baseOptions);
+    const { dateFormat: savedDateFormat } = await chrome.storage.sync.get(
+      'dateFormat'
+    );
+
+    if (chrome.runtime.lastError) {
+      console.error(chrome.runtime.lastError);
+      return DEFAULT_OPTIONS;
+    }
+
+    options = {
+      ...baseOptions,
+      ...savedOptions,
+      get dateFormat() {
+        return DEFAULT_OPTIONS.dateFormat;
       }
+    };
 
-      options = savedOptions;
+    if (savedDateFormat) {
+      delete options.dateFormat;
+      options.dateFormat = savedDateFormat;
+    }
 
-      resolve(options);
-    });
-  });
+    return options;
+  } catch (error) {
+    console.error(error);
+    return DEFAULT_OPTIONS;
+  }
 }
 
 getOptions();
 
+globalThis.clearExtensionCache = clearCache;
+globalThis.getOptions = getOptions;
+globalThis.getCurrentOptions = () => options;
+
 chrome.runtime.onMessage.addListener((request = {}) => {
-  const { type, ...savedOptions } = request;
+  const { type, ...data } = request;
+  const { shouldDeleteSavedDateFormat, ...savedOptions } = data;
 
   if (type === 'options-changed') {
-    options = Object.assign({}, DEFAULT_OPTIONS, savedOptions);
+    const newOptions = Object.assign({}, DEFAULT_OPTIONS);
+    delete newOptions.dateFormat;
+
+    Object.assign(newOptions, savedOptions);
+
+    if (shouldDeleteSavedDateFormat) delete newOptions.dateFormat;
+    if (!newOptions.dateFormat) {
+      Object.defineProperty(newOptions, 'dateFormat', {
+        enumerable: true,
+        configurable: true,
+        get() {
+          return DEFAULT_OPTIONS.dateFormat;
+        }
+      });
+    }
+
+    options = newOptions;
   }
 });
 
