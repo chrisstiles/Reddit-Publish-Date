@@ -203,7 +203,7 @@ input[type='text'],
 }
 
 .button-option {
-  padding: 10px 25px;
+  padding: 12px 25px;
   background-color: #dedede;
   text-align: center;
   cursor: pointer;
@@ -437,19 +437,34 @@ input[type='text'],
 
 #save-wrapper {
   background-color: #fff;
-  text-align: right;
-  padding: 10px;
+  padding: 10px 10px 10px 20px;
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   height: 55px;
+  z-index: 300;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#review-link {
+  color: #8c8989;
+
+  a {
+    text-decoration: none;
+    color: $orange;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 }
 
 #save {
   background-color: $orange;
   color: #fff;
-  display: inline-block;
 
   &:hover {
     background-color: #ee5a37;
